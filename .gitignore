@@ -1,0 +1,8 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+.vite
+# Iconos generados por `npm run gen-icons` (los regenera el workflow de deploy)
+public/icons/
