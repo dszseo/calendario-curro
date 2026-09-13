@@ -45,13 +45,13 @@ export function Home() {
   return (
     <div>
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Mes anterior" onClick={() => shift(-1)}>
+        <button class="icon-btn nav" aria-label="Mes anterior" onClick={() => shift(-1)}>
           ←
         </button>
         <h2 onClick={goToday} style={{ cursor: 'pointer' }}>
           {monthTitle(ym.y, ym.m)}
         </h2>
-        <button class="icon-btn" aria-label="Mes siguiente" onClick={() => shift(1)}>
+        <button class="icon-btn nav" aria-label="Mes siguiente" onClick={() => shift(1)}>
           →
         </button>
       </div>

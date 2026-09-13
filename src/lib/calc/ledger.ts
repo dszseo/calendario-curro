@@ -19,7 +19,7 @@ export function descripcionMovimiento(e: Entry): string | null {
     case 'libranza':
       return e.motivo === 'horas' ? 'Libranza a cuenta de la bolsa' : null
     case 'horaExtra':
-      return e.destino === 'bolsa' ? 'Hora extra a la bolsa' : null
+      return e.destino === 'bolsa' || e.destino === 'ambos' ? 'Hora extra a la bolsa' : null
     default:
       return null
   }

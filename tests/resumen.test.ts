@@ -7,6 +7,13 @@ const e = (x: Partial<Entry> & { type: Entry['type'] }): Entry => ({ id: Math.ra
 const day = (date: string, entries: Entry[]): Day => ({ date, entries, updatedAt: 0 })
 
 describe('resumenMes', () => {
+  it('horaExtra "ambos" cuenta a la vez para cobrar y para la bolsa', () => {
+    const r = resumenMes([day('2026-09-24', [e({ type: 'horaExtra', horas: 8, destino: 'ambos' })])])
+    expect(r.horasExtraCobrar).toBe(8)
+    expect(r.horasExtraBolsa).toBe(8)
+  })
+
+
   it('cuenta turnos, horas, complementos y variación de bolsa (con entradas auto)', () => {
     const base: Day[] = [
       day('2026-09-07', [e({ type: 'turno', periodo: 'tarde', horas: 8 })]), // lunes

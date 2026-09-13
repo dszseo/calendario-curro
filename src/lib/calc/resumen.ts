@@ -85,8 +85,8 @@ export function resumenMes(days: Day[]): ResumenMes {
           if (e.pagaHorasExtra) r.horasExtraCobrar += e.pagaHorasExtra
           break
         case 'horaExtra':
-          if (e.destino === 'cobrar') r.horasExtraCobrar += e.horas
-          else r.horasExtraBolsa += e.horas
+          if (e.destino === 'cobrar' || e.destino === 'ambos') r.horasExtraCobrar += e.horas
+          if (e.destino === 'bolsa' || e.destino === 'ambos') r.horasExtraBolsa += e.horas
           break
         case 'ajusteBolsa':
           r.ajusteBolsaMes += e.override ?? e.horas

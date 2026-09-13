@@ -46,7 +46,7 @@ export function BolsaAnual() {
   return (
     <div>
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Atrás" onClick={() => loc.route('/')}>
+        <button class="icon-btn nav" aria-label="Atrás" onClick={() => loc.route('/')}>
           ←
         </button>
         <h2>Bolsa del año</h2>
@@ -54,11 +54,11 @@ export function BolsaAnual() {
       </div>
 
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Año anterior" onClick={() => setYear((y) => y - 1)}>
+        <button class="icon-btn nav" aria-label="Año anterior" onClick={() => setYear((y) => y - 1)}>
           ←
         </button>
         <h2>{year}</h2>
-        <button class="icon-btn" aria-label="Año siguiente" onClick={() => setYear((y) => y + 1)}>
+        <button class="icon-btn nav" aria-label="Año siguiente" onClick={() => setYear((y) => y + 1)}>
           →
         </button>
       </div>

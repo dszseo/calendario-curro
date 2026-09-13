@@ -79,7 +79,12 @@ export function describeEntry(e: Entry): EntryView {
     case 'horaExtra':
       return {
         title: `Horas extra: ${h(e.horas)}`,
-        sub: e.destino === 'bolsa' ? 'A la bolsa de horas' : 'Para cobrar (nómina del mes siguiente)',
+        sub:
+          e.destino === 'ambos'
+            ? 'A la bolsa y para cobrar (nómina del mes siguiente)'
+            : e.destino === 'bolsa'
+              ? 'A la bolsa de horas'
+              : 'Para cobrar (nómina del mes siguiente)',
         swatch: 'sw-extra',
       }
     case 'libranza':

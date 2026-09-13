@@ -111,12 +111,12 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
       } else {
         await setTurno(date, t)
       }
-      setDraft({ mode: 'list' })
+      onClose()
       return
     }
     if ('id' in entry) await updateEntry(date, entry as Entry)
     else await addEntry(date, entry)
-    setDraft({ mode: 'list' })
+    onClose()
   }
 
   async function startBaja() {
@@ -259,7 +259,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
             entry={draft.entry}
             onSave={async (valor) => {
               await overrideEntrada(date, draft.entry.id, valor)
-              setDraft({ mode: 'list' })
+              onClose()
             }}
             onCancel={() => setDraft({ mode: 'list' })}
           />
@@ -445,7 +445,8 @@ function EntryForm({
   // horaExtra
   const x0 = initial?.type === 'horaExtra' ? (initial as HoraExtraEntry) : undefined
   const [xHoras, setXHoras] = useState(String(x0?.horas ?? JORNADA_HORAS))
-  const [xDestino, setXDestino] = useState<'cobrar' | 'bolsa'>(x0?.destino ?? 'bolsa')
+  const [xCobrar, setXCobrar] = useState(x0 ? x0.destino === 'cobrar' || x0.destino === 'ambos' : false)
+  const [xBolsa, setXBolsa] = useState(x0 ? x0.destino === 'bolsa' || x0.destino === 'ambos' : true)
 
   // libranza
   const l0 = initial?.type === 'libranza' ? (initial as LibranzaEntry) : undefined
@@ -498,7 +499,11 @@ function EntryForm({
           horaSalida: hSalida || undefined,
         })
       case 'horaExtra':
-        return emit({ type: 'horaExtra', horas: num(xHoras, JORNADA_HORAS), destino: xDestino })
+        return emit({
+          type: 'horaExtra',
+          horas: num(xHoras, JORNADA_HORAS),
+          destino: xCobrar && xBolsa ? 'ambos' : xCobrar ? 'cobrar' : 'bolsa',
+        })
       case 'libranza':
         return emit({ type: 'libranza', motivo: lMotivo })
       case 'festivo':
@@ -586,15 +591,23 @@ function EntryForm({
             <input type="number" inputMode="decimal" step="0.5" value={xHoras} onInput={(e) => setXHoras((e.target as HTMLInputElement).value)} />
           </div>
           <div class="field">
-            <label>¿Qué se hace con ellas?</label>
-            <SegmentedScale
-              options={[
-                { value: 'bolsa', label: 'A la bolsa de horas' },
-                { value: 'cobrar', label: 'Cobrar (mes siguiente)' },
-              ]}
-              value={xDestino}
-              onChange={(v) => v && setXDestino(v)}
-            />
+            <label>¿Qué se hace con ellas? (puedes marcar las dos, p.ej. festivo que se cobra y además da día libre)</label>
+            <div class="seg">
+              <button
+                type="button"
+                aria-pressed={xBolsa}
+                onClick={() => setXBolsa((v) => (v && !xCobrar ? v : !v))}
+              >
+                A la bolsa de horas
+              </button>
+              <button
+                type="button"
+                aria-pressed={xCobrar}
+                onClick={() => setXCobrar((v) => (v && !xBolsa ? v : !v))}
+              >
+                Cobrar (mes siguiente)
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -30,7 +30,7 @@ export function Settings() {
   return (
     <div>
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Atrás" onClick={() => loc.route('/')}>
+        <button class="icon-btn nav" aria-label="Atrás" onClick={() => loc.route('/')}>
           ←
         </button>
         <h2>Ajustes</h2>
@@ -395,8 +395,6 @@ function AboutSection() {
           message="Se eliminan todos los días y ajustes de este dispositivo. Descarga una copia antes si quieres conservarlos."
           confirmLabel="Borrar todo"
           onConfirm={async () => {
-            const text = backupToString(await buildBackup())
-            downloadText(backupFilename('calendario-curro-antes-de-borrar'), text, 'application/json')
             await Promise.all([db.days.clear(), db.meta.clear()])
             setDanger(false)
             toast('Datos borrados')

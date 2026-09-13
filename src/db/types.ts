@@ -65,7 +65,8 @@ export interface TurnoEntry extends BaseEntry {
 export interface HoraExtraEntry extends BaseEntry {
   type: 'horaExtra'
   horas: number
-  destino: 'cobrar' | 'bolsa'
+  /** 'ambos': se cobra Y además va a la bolsa (p.ej. festivo que da día libre y se paga). */
+  destino: 'cobrar' | 'bolsa' | 'ambos'
 }
 
 export interface LibranzaEntry extends BaseEntry {

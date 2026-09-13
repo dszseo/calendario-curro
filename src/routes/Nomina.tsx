@@ -48,7 +48,7 @@ export function Nomina() {
   return (
     <div>
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Atrás" onClick={() => loc.route('/')}>
+        <button class="icon-btn nav" aria-label="Atrás" onClick={() => loc.route('/')}>
           ←
         </button>
         <h2>Nómina</h2>
@@ -56,11 +56,11 @@ export function Nomina() {
       </div>
 
       <div class="cal-head">
-        <button class="icon-btn" aria-label="Mes anterior" onClick={() => shift(-1)}>
+        <button class="icon-btn nav" aria-label="Mes anterior" onClick={() => shift(-1)}>
           ←
         </button>
         <h2>{monthTitle(ym.y, ym.m)}</h2>
-        <button class="icon-btn" aria-label="Mes siguiente" onClick={() => shift(1)}>
+        <button class="icon-btn nav" aria-label="Mes siguiente" onClick={() => shift(1)}>
           →
         </button>
       </div>

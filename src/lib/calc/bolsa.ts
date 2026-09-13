@@ -16,7 +16,7 @@ const CTX_VACIO: BolsaCtx = { hayNocheEn: () => false }
 export function bolsaDeltaEntry(e: Entry, jornada = JORNADA_HORAS): number {
   switch (e.type) {
     case 'horaExtra':
-      return e.destino === 'bolsa' ? e.horas : 0
+      return e.destino === 'bolsa' || e.destino === 'ambos' ? e.horas : 0
     case 'ajusteBolsa':
       return e.override ?? e.horas
     case 'libranza':

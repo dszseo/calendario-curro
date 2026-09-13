@@ -138,6 +138,15 @@ textarea { resize: vertical; min-height: 62px; }
 }
 .icon-btn:active { background: var(--surface-2); }
 
+/* Flechas de navegación (cambiar de mes/año, volver): botón cuadrado que resalta un poco. */
+.icon-btn.nav {
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.icon-btn.nav:active { background: var(--surface-2); box-shadow: none; }
+
 .content {
   flex: 1;
   padding: 14px;

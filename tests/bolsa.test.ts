@@ -10,9 +10,10 @@ const noche = (date: string) => day(date, [e({ type: 'turno', periodo: 'noche', 
 // Referencias 2026-09: 07 lun · 11 vie · 12 sáb · 13 dom · 14 lun · 18 vie · 19 sáb
 
 describe('bolsaDeltaEntry', () => {
-  it('horas extra a bolsa / a cobrar', () => {
+  it('horas extra a bolsa / a cobrar / ambos', () => {
     expect(bolsaDeltaEntry(e({ type: 'horaExtra', horas: 2, destino: 'bolsa' }))).toBe(2)
     expect(bolsaDeltaEntry(e({ type: 'horaExtra', horas: 8, destino: 'cobrar' }))).toBe(0)
+    expect(bolsaDeltaEntry(e({ type: 'horaExtra', horas: 8, destino: 'ambos' }))).toBe(8)
   })
   it('libranza a cuenta de horas: −8', () => {
     expect(bolsaDeltaEntry(e({ type: 'libranza', motivo: 'horas' }))).toBe(-8)
