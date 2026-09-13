@@ -28,15 +28,15 @@ describe('complementos — noche', () => {
     const dias = [noche('2026-09-13')]
     expect(comp('2026-09-13', dias)).toEqual([{ tipo: 'festivo', valor: 0.5 }])
   })
-  it('viernes noche = ½ sábado (cae en la fila del sábado)', () => {
+  it('viernes noche = 1 sábado (cae entero en la fila del sábado)', () => {
     const dias = [noche('2026-09-18')]
     expect(comp('2026-09-18', dias)).toEqual([]) // el viernes en sí no tiene tipo
-    expect(comp('2026-09-19', dias)).toEqual([{ tipo: 'sabado', valor: 0.5 }])
-  })
-  it('viernes + sábado noche → sábado = 1 sábado, domingo = ½ festivo', () => {
-    const dias = [noche('2026-09-18'), noche('2026-09-19')]
     expect(comp('2026-09-19', dias)).toEqual([{ tipo: 'sabado', valor: 1 }])
-    expect(comp('2026-09-20', dias)).toEqual([{ tipo: 'festivo', valor: 0.5 }])
+  })
+  it('viernes + sábado noche → sábado = 1,5 (½ propio + 1 del viernes), domingo = 1 festivo (del sábado)', () => {
+    const dias = [noche('2026-09-18'), noche('2026-09-19')]
+    expect(comp('2026-09-19', dias)).toEqual([{ tipo: 'sabado', valor: 1.5 }])
+    expect(comp('2026-09-20', dias)).toEqual([{ tipo: 'festivo', valor: 1 }])
   })
   it('festivo el jueves: miércoles noche + jueves noche = 1,5 festivos (fila del jueves)', () => {
     const dias = [
@@ -47,9 +47,16 @@ describe('complementos — noche', () => {
   })
   it('salir 2 h antes (efectivas 6 ≥ 4) sigue contando; 3 h no', () => {
     const ok = [day('2026-09-18', [e({ type: 'turno', periodo: 'noche', horas: 8 }), e({ type: 'ajusteBolsa', horas: -2 })])]
-    expect(comp('2026-09-19', ok)).toEqual([{ tipo: 'sabado', valor: 0.5 }])
+    expect(comp('2026-09-19', ok)).toEqual([{ tipo: 'sabado', valor: 1 }])
     const no = [day('2026-09-18', [e({ type: 'turno', periodo: 'noche', horas: 8 }), e({ type: 'ajusteBolsa', horas: -5 })])]
     expect(comp('2026-09-19', no)).toEqual([])
+  })
+
+  it('semana de noche completa (arranque lunes, hasta sábado): viernes=1 sábado, sábado=½ sábado', () => {
+    // 2026-09-14 lunes … 2026-09-19 sábado (6 noches, arranque lunes)
+    const dias = ['14', '15', '16', '17', '18', '19'].map((d) => noche(`2026-09-${d}`))
+    expect(comp('2026-09-19', dias)).toEqual([{ tipo: 'sabado', valor: 1.5 }]) // 1 (viernes) + ½ (propio)
+    expect(comp('2026-09-20', dias)).toEqual([{ tipo: 'festivo', valor: 1 }]) // del sábado
   })
 })
 

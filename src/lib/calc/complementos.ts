@@ -46,12 +46,18 @@ export interface ComplementoCalc {
  * - turno de mañana/tarde ese día, en día de complemento (≥ umbral) → 1 entero.
  * - turno de noche que EMPIEZA ese día (arranca la tarde-noche):
  *     · festivo marcado entre semana → 1 entero (todo el día es festivo).
- *     · sábado → ½ (necesita el viernes para sumar el sábado entero).
- *     · domingo → ½ (la noche del domingo siempre es inicio de semana).
- * - turno de noche del día ANTERIOR, que termina esa madrugada → ½.
+ *     · sábado → ½ (la noche del sábado, en su propio día, vale medio).
+ *     · domingo → ½ (la noche del domingo siempre es inicio de semana, nunca
+ *       "termina" — vale medio aunque encadene con la siguiente).
+ * - turno de noche del día ANTERIOR, que termina esa madrugada:
+ *     · si la madrugada es de SÁBADO o DOMINGO → 1 entero (viernes noche = 1
+ *       sábado; sábado noche = 1 festivo, además del ½ sábado de su propio día).
+ *     · si es un festivo entre semana marcado → ½ (p. ej. miércoles noche antes
+ *       de un jueves festivo).
  *
- * Ejemplos que salen solos: viernes+sábado noche → 1 sábado + ½ festivo;
- * festivo el jueves con miércoles noche (½) + jueves noche (1) → 1,5 festivos.
+ * Con esto: viernes noche → 1 sábado. Sábado noche → ½ sábado (propio) + 1
+ * festivo (madrugada del domingo). Domingo noche → ½ festivo (propio).
+ * Festivo el jueves con miércoles noche (½) + jueves noche (1) → 1,5 festivos.
  */
 export function complementosDia(
   date: DateKey,
@@ -65,24 +71,24 @@ export function complementosDia(
   if (!tipo) return []
 
   let valor = 0
+  const dow = dowMon0(date)
 
   const tHoy = turnoDe(hoy)
   if (tHoy && horasEfectivas(hoy) >= umbral) {
     if (tHoy.periodo !== 'noche') {
       valor += 1 // jornada de día completa en día de complemento
     } else {
-      // Noche que empieza ese día. PENDIENTE de confirmar con el usuario el
-      // valor del sábado noche ("mi domingo" en semana de noche): la §8 del
-      // enunciado sugiere que podría contar como festivo, no como sábado, y/o
-      // valer 1 en vez de ½. Si cambia, es solo ajustar estos números.
-      const esFestivoEntero = esFestivo && dowMon0(date) !== 6
+      // Noche que empieza ese día, en su propio día.
+      const esFestivoEntero = esFestivo && dow !== 6
       valor += esFestivoEntero ? 1 : 0.5
     }
   }
 
   const tAyer = turnoDe(ayer)
   if (tAyer && tAyer.periodo === 'noche' && horasEfectivas(ayer) >= umbral) {
-    valor += 0.5 // madrugada entrante
+    // Madrugada entrante: fin de semana (viernes→sábado, sábado→domingo) cuenta
+    // entero; un festivo entre semana marcado sigue contando medio.
+    valor += dow === 5 || dow === 6 ? 1 : 0.5
   }
 
   return valor > 0 ? [{ tipo, valor }] : []
