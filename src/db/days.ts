@@ -3,13 +3,16 @@ import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
 import { addDaysKey, keysBetween, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
 import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
-import { sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
+import { conAncla, sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
 import { scheduleSnapshot } from '../export/snapshots'
 
 export const DISPO_ANCLA_KEY = 'dispoAncla'
 
-function getDispoAncla(): Promise<DispoAncla | null> {
-  return getMeta<DispoAncla | null>(DISPO_ANCLA_KEY, null)
+/** Lista de anclas T/D. Admite el formato antiguo (una sola ancla, sin lista). */
+async function getDispoAnclas(): Promise<DispoAncla[]> {
+  const raw = await getMeta<DispoAncla[] | DispoAncla | null>(DISPO_ANCLA_KEY, null)
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : [raw]
 }
 
 export { uuid }
@@ -50,9 +53,9 @@ function recalcularDia(
   prev: Day | undefined,
   mapa: Map<DateKey, Day>,
   ctx?: BolsaCtx,
-  ancla?: DispoAncla | null,
+  anclas?: DispoAncla[] | null,
 ): Day | null {
-  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx, ancla)
+  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx, anclas)
   const entries = fusionarEntradas(prev?.entries ?? [], autos)
   if (entries.length === 0) {
     // conserva la fila si el usuario ha descartado alguna categoría auto
@@ -78,13 +81,13 @@ async function regenerarEnRango(
   const ctxRows = await db.days.where('date').between(ctxDesde, ctxHasta, true, true).toArray()
   const mapa = new Map(ctxRows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(ctxRows)
-  const ancla = await getDispoAncla()
+  const anclas = await getDispoAnclas()
 
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const date of keysBetween(nucleoDesde, nucleoHasta)) {
     const prev = mapa.get(date)
-    const next = recalcularDia(date, prev, mapa, ctx, ancla)
+    const next = recalcularDia(date, prev, mapa, ctx, anclas)
     if (next === prev) continue
     if (next === null) {
       if (prev) dels.push(date)
@@ -126,11 +129,11 @@ export async function regenerarTodo(): Promise<void> {
   const rows = await db.days.toArray()
   const mapa = new Map(rows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(rows)
-  const ancla = await getDispoAncla()
+  const anclas = await getDispoAnclas()
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const d of rows) {
-    const next = recalcularDia(d.date, d, mapa, ctx, ancla)
+    const next = recalcularDia(d.date, d, mapa, ctx, anclas)
     if (next === d) continue
     if (next === null) dels.push(d.date)
     else puts.push(next)
@@ -234,15 +237,17 @@ export async function recalcularAutoDia(date: DateKey): Promise<void> {
 
 /**
  * Fija la disponibilidad T/D de un finde completo (sábado + domingo, da igual
- * en cuál de los dos se pulse). A partir de aquí alterna sola cada semana
- * hasta que se vuelva a fijar otro finde, que pasa a ser el nuevo punto de
- * partida de la alternancia.
+ * en cuál de los dos se pulse). A partir de aquí alterna sola cada semana,
+ * SOLO HACIA DELANTE: los findes anteriores a este no se tocan (lo pasado no
+ * cambia). Puede quedar una secuencia de dos T o dos D seguidas justo en el
+ * cambio de ancla, y es correcto que así sea.
  */
 export async function setDisponibilidadFinde(date: DateKey, valor: Dispo): Promise<void> {
   const sabado = sabadoDeFinde(date)
   if (!sabado) return
   const domingo = addDaysKey(sabado, 1)
-  await setMeta(DISPO_ANCLA_KEY, { sabado, valor } satisfies DispoAncla)
+  const anclas = await getDispoAnclas()
+  await setMeta(DISPO_ANCLA_KEY, conAncla(anclas, { sabado, valor } satisfies DispoAncla))
   // por si ese finde estaba descartado antes, se reactiva
   for (const d of [sabado, domingo]) {
     const day = await db.days.get(d)
@@ -251,8 +256,8 @@ export async function setDisponibilidadFinde(date: DateKey, valor: Dispo): Promi
       await db.days.put({ ...day, autoOff: autoOff.length ? autoOff : undefined })
     }
   }
-  // refresca un rango amplio para que el cambio se note ya en varios meses
-  await regenerarRangoVisible(addDaysKey(sabado, -60), addDaysKey(sabado, 60))
+  // refresca hacia delante (nunca hacia atrás) para que el cambio se note ya
+  await regenerarRangoVisible(sabado, addDaysKey(sabado, 180))
 }
 
 /** Quita la disponibilidad de un finde concreto (sábado + domingo). */

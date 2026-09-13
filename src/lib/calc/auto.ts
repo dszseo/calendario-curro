@@ -79,14 +79,14 @@ export function autoLibranzaCompDia(date: DateKey, dias: Map<DateKey, Day>): Lib
   return [{ id: `auto-libra-${date}`, type: 'libranzaComp', dia: c.dia, auto: true }]
 }
 
-/** Disponibilidad T/D automática de un sábado/domingo, según el ancla activa. */
+/** Disponibilidad T/D automática de un sábado/domingo, según las anclas activas. */
 export function autoDisponibilidadDia(
   date: DateKey,
-  ancla: DispoAncla | null | undefined,
+  anclas: DispoAncla[] | null | undefined,
 ): DisponibilidadEntry[] {
   const sabado = sabadoDeFinde(date)
   if (!sabado) return []
-  const valor = dispoDeFinde(sabado, ancla ?? null)
+  const valor = dispoDeFinde(sabado, anclas)
   if (!valor) return []
   return [{ id: `auto-dispo-${date}`, type: 'disponibilidad', valor, auto: true }]
 }
@@ -97,14 +97,14 @@ export function entradasAutoDia(
   dias: Map<DateKey, Day>,
   autoOff: AutoCategoria[] = [],
   ctx?: BolsaCtx,
-  ancla?: DispoAncla | null,
+  anclas?: DispoAncla[] | null,
 ): Entry[] {
   const off = new Set(autoOff)
   const out: Entry[] = []
   if (!off.has('bolsa')) out.push(...autoBolsaDia(date, dias, ctx))
   if (!off.has('complemento')) out.push(...autoComplementoDia(date, dias))
   if (!off.has('libranza')) out.push(...autoLibranzaCompDia(date, dias))
-  if (!off.has('disponibilidad')) out.push(...autoDisponibilidadDia(date, ancla))
+  if (!off.has('disponibilidad')) out.push(...autoDisponibilidadDia(date, anclas))
   return out
 }
 
@@ -114,12 +114,12 @@ export function entradasAutoDia(
  * (p. ej. un finde sin turno) no se generan aquí — para eso hace falta iterar
  * el rango de fechas, ver `regenerarRangoVisible` en `db/days.ts`.
  */
-export function regenerarEnMemoria(days: Day[], ancla: DispoAncla | null = null): Day[] {
+export function regenerarEnMemoria(days: Day[], anclas: DispoAncla[] | null = null): Day[] {
   const mapa = new Map(days.map((d) => [d.date, d]))
   const ctx = bolsaCtx(days)
   return days
     .map((d) => {
-      const autos = entradasAutoDia(d.date, mapa, d.autoOff, ctx, ancla)
+      const autos = entradasAutoDia(d.date, mapa, d.autoOff, ctx, anclas)
       const entries = fusionarEntradas(d.entries, autos)
       return { ...d, entries }
     })
