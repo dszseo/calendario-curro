@@ -7,7 +7,7 @@ import type {
   LibranzaCompEntry,
 } from '../../db/types'
 import { dowMon0, type DateKey } from '../datetime'
-import { bolsaCtx, turnoBolsa } from './bolsa'
+import { bolsaCtx, turnoBolsa, type BolsaCtx } from './bolsa'
 import { complementosDia } from './complementos'
 import { libranzaCompDia } from './libranzas'
 
@@ -36,12 +36,15 @@ function motivoBolsa(date: DateKey, periodo: 'manana' | 'tarde' | 'noche'): stri
     : 'Domingo trabajado (fuera de jornada)'
 }
 
-/** Ajuste de bolsa automático de un día (por trabajar sábado/domingo o noche extra). */
-export function autoBolsaDia(date: DateKey, dias: Map<DateKey, Day>): AjusteBolsaEntry[] {
+/**
+ * Ajuste de bolsa automático de un día (por trabajar sábado/domingo o noche
+ * extra). `ctx` se puede precalcular una vez para varias llamadas (p.ej. al
+ * recalcular todo el historial); si no se pasa, se calcula a partir de `dias`.
+ */
+export function autoBolsaDia(date: DateKey, dias: Map<DateKey, Day>, ctx?: BolsaCtx): AjusteBolsaEntry[] {
   const turno = dias.get(date)?.entries.find((e) => e.type === 'turno')
   if (!turno || turno.type !== 'turno') return []
-  const ctx = bolsaCtx([...dias.values()])
-  const horas = turnoBolsa(date, turno.periodo, ctx)
+  const horas = turnoBolsa(date, turno.periodo, ctx ?? bolsaCtx([...dias.values()]))
   if (horas === 0) return []
   return [
     {
@@ -78,10 +81,11 @@ export function entradasAutoDia(
   date: DateKey,
   dias: Map<DateKey, Day>,
   autoOff: AutoCategoria[] = [],
+  ctx?: BolsaCtx,
 ): Entry[] {
   const off = new Set(autoOff)
   const out: Entry[] = []
-  if (!off.has('bolsa')) out.push(...autoBolsaDia(date, dias))
+  if (!off.has('bolsa')) out.push(...autoBolsaDia(date, dias, ctx))
   if (!off.has('complemento')) out.push(...autoComplementoDia(date, dias))
   if (!off.has('libranza')) out.push(...autoLibranzaCompDia(date, dias))
   return out
@@ -93,9 +97,10 @@ export function entradasAutoDia(
  */
 export function regenerarEnMemoria(days: Day[]): Day[] {
   const mapa = new Map(days.map((d) => [d.date, d]))
+  const ctx = bolsaCtx(days)
   return days
     .map((d) => {
-      const autos = entradasAutoDia(d.date, mapa, d.autoOff)
+      const autos = entradasAutoDia(d.date, mapa, d.autoOff, ctx)
       const entries = fusionarEntradas(d.entries, autos)
       return { ...d, entries }
     })

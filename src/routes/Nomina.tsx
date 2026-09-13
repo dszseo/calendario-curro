@@ -68,9 +68,17 @@ export function Nomina() {
       <section class="section">
         <h2>Debería venir en esta nómina</h2>
         <div class="card">
-          <Row k="Complementos de sábado" v={nf(r.complementoSabado)} hint="generados este mes" />
-          <Row k="Complementos de festivo" v={nf(r.complementoFestivo)} hint="incluye domingos y festivos" />
-          <Row k="Festivos marcados trabajados" v={String(r.festivos)} />
+          <Row
+            k="Complementos de sábado"
+            v={nf(rAnt.complementoSabado)}
+            hint={`generados en ${monthTitle(ant.getFullYear(), ant.getMonth()).toLowerCase()} (se cobran a mes vencido)`}
+          />
+          <Row
+            k="Complementos de festivo"
+            v={nf(rAnt.complementoFestivo)}
+            hint="incluye domingos y festivos, del mes anterior"
+          />
+          <Row k="Festivos marcados trabajados" v={String(rAnt.festivos)} hint="del mes anterior" />
           <Row
             k="Horas extra a cobrar"
             v={hh(rAnt.horasExtraCobrar)}
@@ -82,6 +90,16 @@ export function Nomina() {
       <section class="section">
         <h2>Generado este mes (se cobra después)</h2>
         <div class="card">
+          <Row
+            k="Complementos de sábado"
+            v={nf(r.complementoSabado)}
+            hint={`se verán en la nómina de ${monthTitle(mesSig.getFullYear(), mesSig.getMonth()).toLowerCase()}`}
+          />
+          <Row
+            k="Complementos de festivo"
+            v={nf(r.complementoFestivo)}
+            hint={`se verán en la nómina de ${monthTitle(mesSig.getFullYear(), mesSig.getMonth()).toLowerCase()}`}
+          />
           <Row
             k="Horas extra a cobrar"
             v={hh(r.horasExtraCobrar)}

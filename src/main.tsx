@@ -5,6 +5,7 @@ import { Shell } from './app'
 import { Home } from './routes/Home'
 import { Settings } from './routes/Settings'
 import { Nomina } from './routes/Nomina'
+import { BolsaAnual } from './routes/BolsaAnual'
 import { requestPersistentStorage } from './lib/persist'
 import { regenerarTodo } from './db/days'
 
@@ -15,6 +16,7 @@ regenerarTodo().catch(() => {})
 const routes = [
   { pattern: '/', component: Home },
   { pattern: '/nomina', component: Nomina },
+  { pattern: '/bolsa-anio', component: BolsaAnual },
   { pattern: '/ajustes', component: Settings },
 ]
 

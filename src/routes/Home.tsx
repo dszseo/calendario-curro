@@ -77,6 +77,9 @@ export function Home() {
         <button class="btn ghost block" onClick={() => loc.route('/nomina')}>
           🧾 Ver nómina del mes
         </button>
+        <button class="btn ghost block" onClick={() => loc.route('/bolsa-anio')}>
+          📋 Ver bolsa del año
+        </button>
         <button class="btn ghost block" onClick={() => loc.route('/ajustes')}>
           ⚙️ Ajustes y copia de seguridad
         </button>

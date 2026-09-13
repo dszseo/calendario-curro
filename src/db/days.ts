@@ -2,6 +2,7 @@ import { db, uuid } from './db'
 import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
 import { addDaysKey, keysBetween, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
+import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
 import { scheduleSnapshot } from '../export/snapshots'
 
 export { uuid }
@@ -37,8 +38,13 @@ function mismasEntradas(a: Entry[], b: Entry[]): boolean {
   return a.length === b.length && claveEntradas(a) === claveEntradas(b)
 }
 
-function recalcularDia(date: DateKey, prev: Day | undefined, mapa: Map<DateKey, Day>): Day | null {
-  const autos = entradasAutoDia(date, mapa, prev?.autoOff)
+function recalcularDia(
+  date: DateKey,
+  prev: Day | undefined,
+  mapa: Map<DateKey, Day>,
+  ctx?: BolsaCtx,
+): Day | null {
+  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx)
   const entries = fusionarEntradas(prev?.entries ?? [], autos)
   if (entries.length === 0) {
     // conserva la fila si el usuario ha descartado alguna categoría auto
@@ -61,12 +67,13 @@ async function regenerarAuto(centro: DateKey): Promise<void> {
     .between(addDaysKey(centro, -12), addDaysKey(centro, 12), true, true)
     .toArray()
   const mapa = new Map(ctxRows.map((d) => [d.date, d]))
+  const ctx = bolsaCtx(ctxRows)
 
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const date of keysBetween(nucleoDesde, nucleoHasta)) {
     const prev = mapa.get(date)
-    const next = recalcularDia(date, prev, mapa)
+    const next = recalcularDia(date, prev, mapa, ctx)
     if (next === prev) continue
     if (next === null) {
       if (prev) dels.push(date)
@@ -85,10 +92,11 @@ async function regenerarAuto(centro: DateKey): Promise<void> {
 export async function regenerarTodo(): Promise<void> {
   const rows = await db.days.toArray()
   const mapa = new Map(rows.map((d) => [d.date, d]))
+  const ctx = bolsaCtx(rows)
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const d of rows) {
-    const next = recalcularDia(d.date, d, mapa)
+    const next = recalcularDia(d.date, d, mapa, ctx)
     if (next === d) continue
     if (next === null) dels.push(d.date)
     else puts.push(next)
