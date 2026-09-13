@@ -1,4 +1,4 @@
-import { format, parse } from 'date-fns'
+import { format, getISOWeek, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 /** Clave de día en hora local: "YYYY-MM-DD". Es la unidad de todo el modelo. */
@@ -91,4 +91,9 @@ export function monthKeyRange(year: number, month0: number): { fromKey: DateKey;
 export function ymOfKey(key: DateKey): { year: number; month0: number } {
   const d = parseKey(key)
   return { year: d.getFullYear(), month0: d.getMonth() }
+}
+
+/** Número de semana ISO 8601 (semana que empieza en lunes, la 1.ª es la que tiene el primer jueves del año). */
+export function isoWeek(key: DateKey): number {
+  return getISOWeek(parseKey(key))
 }

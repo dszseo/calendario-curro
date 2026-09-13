@@ -250,6 +250,22 @@ textarea { resize: vertical; min-height: 62px; }
 .cal-dow { text-align: center; font-size: .72rem; color: var(--text-dim); font-weight: 700; padding: 4px 0; }
 .cal-dow.we { color: var(--festivo); }
 
+/* Columna de nº de semana ISO, pegada a la izquierda de cada fila (junto al lunes). */
+.cal-week-row { display: flex; align-items: stretch; gap: 4px; }
+.cal-week-row + .cal-week-row { margin-top: 4px; }
+.cal-week-row .cal-grid { flex: 1; min-width: 0; }
+.wk-num {
+  flex: 0 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .62rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  opacity: .7;
+}
+.wk-num.head { flex: 0 0 16px; }
+
 .cal-cell {
   position: relative;
   aspect-ratio: 0.82;

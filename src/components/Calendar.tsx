@@ -1,5 +1,5 @@
 import type { Day, Periodo } from '../db/types'
-import { localDateKey, todayKey, type DateKey } from '../lib/datetime'
+import { addDaysKey, isoWeek, localDateKey, todayKey, type DateKey } from '../lib/datetime'
 
 const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const PERIODO_INICIAL: Record<Periodo, string> = { manana: 'M', tarde: 'T', noche: 'N' }
@@ -78,6 +78,13 @@ function buildGrid(year: number, month0: number): (DateKey | null)[] {
   return cells
 }
 
+/** Lunes con el que arranca la rejilla (puede caer en el mes anterior). */
+function gridStartMonday(year: number, month0: number): DateKey {
+  const first = new Date(year, month0, 1)
+  const startOffset = (first.getDay() + 6) % 7
+  return addDaysKey(localDateKey(first), -startOffset)
+}
+
 export function Calendar({
   year,
   month0,
@@ -91,42 +98,57 @@ export function Calendar({
 }) {
   const cells = buildGrid(year, month0)
   const today = todayKey()
+  const weekStart = gridStartMonday(year, month0)
+  const rows: (DateKey | null)[][] = []
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
 
   return (
     <div>
-      <div class="cal-grid" style={{ marginBottom: '4px' }}>
-        {DOW.map((d, i) => (
-          <div class={`cal-dow ${i >= 5 ? 'we' : ''}`} key={d}>
-            {d}
+      <div class="cal-week-row">
+        <div class="wk-num head" aria-hidden="true" />
+        <div class="cal-grid">
+          {DOW.map((d, i) => (
+            <div class={`cal-dow ${i >= 5 ? 'we' : ''}`} key={d}>
+              {d}
+            </div>
+          ))}
+        </div>
+      </div>
+      {rows.map((row, ri) => {
+        const monday = addDaysKey(weekStart, ri * 7)
+        return (
+          <div class="cal-week-row" key={monday}>
+            <div class="wk-num" title={`Semana ${isoWeek(monday)}`}>
+              {isoWeek(monday)}
+            </div>
+            <div class="cal-grid">
+              {row.map((key, dow) => {
+                if (!key) return <div key={`x${ri}-${dow}`} />
+                const badges = dayBadges(daysMap.get(key))
+                return (
+                  <button
+                    key={key}
+                    class={`cal-cell ${key === today ? 'today' : ''} ${dow >= 5 ? 'we' : ''}`}
+                    onClick={() => onPickDay(key)}
+                  >
+                    <span class="d-num">{Number(key.slice(-2))}</span>
+                    {badges.tags.length > 0 && (
+                      <span class="d-tags">
+                        {badges.tags.map((t, j) => (
+                          <span class={`d-tag ${t.cls}`} key={j}>
+                            {t.label}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    {badges.strip && <span class={`d-turno ${badges.strip.cls}`}>{badges.strip.label}</span>}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        ))}
-      </div>
-      <div class="cal-grid">
-        {cells.map((key, i) => {
-          if (!key) return <div key={`x${i}`} />
-          const dow = i % 7
-          const badges = dayBadges(daysMap.get(key))
-          return (
-            <button
-              key={key}
-              class={`cal-cell ${key === today ? 'today' : ''} ${dow >= 5 ? 'we' : ''}`}
-              onClick={() => onPickDay(key)}
-            >
-              <span class="d-num">{Number(key.slice(-2))}</span>
-              {badges.tags.length > 0 && (
-                <span class="d-tags">
-                  {badges.tags.map((t, j) => (
-                    <span class={`d-tag ${t.cls}`} key={j}>
-                      {t.label}
-                    </span>
-                  ))}
-                </span>
-              )}
-              {badges.strip && <span class={`d-turno ${badges.strip.cls}`}>{badges.strip.label}</span>}
-            </button>
-          )
-        })}
-      </div>
+        )
+      })}
     </div>
   )
 }
