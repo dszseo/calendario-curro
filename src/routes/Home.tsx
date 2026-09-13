@@ -1,7 +1,7 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useLocation } from '../router'
-import { daysMapInRange, getDaysInRange } from '../db/days'
+import { daysMapInRange, getDaysInRange, regenerarRangoVisible } from '../db/days'
 import { db, getMeta } from '../db/db'
 import { monthKeyRange, monthTitle, todayKey, type DateKey } from '../lib/datetime'
 import { Calendar } from '../components/Calendar'
@@ -32,6 +32,11 @@ export function Home() {
   const { fromKey, toKey } = monthKeyRange(ym.y, ym.m)
   const daysMap = useLiveQuery(() => daysMapInRange(fromKey, toKey), [fromKey, toKey], new Map())
   const monthDays = useLiveQuery(() => getDaysInRange(fromKey, toKey), [fromKey, toKey], [])
+
+  // Asegura que los findes T/D del mes visible existen (aunque no tengan turno).
+  useEffect(() => {
+    regenerarRangoVisible(fromKey, toKey).catch(() => {})
+  }, [fromKey, toKey])
 
   const shift = (delta: number) => {
     const d = new Date(ym.y, ym.m + delta, 1)

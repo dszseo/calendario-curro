@@ -40,7 +40,7 @@ export type EntryType =
   | 'nota'
 
 /** Categorías de entrada que la app genera y mantiene automáticamente. */
-export type AutoCategoria = 'bolsa' | 'complemento' | 'libranza'
+export type AutoCategoria = 'bolsa' | 'complemento' | 'libranza' | 'disponibilidad'
 
 interface BaseEntry {
   id: string

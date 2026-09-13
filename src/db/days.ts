@@ -1,9 +1,16 @@
-import { db, uuid } from './db'
+import { db, getMeta, setMeta, uuid } from './db'
 import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
 import { addDaysKey, keysBetween, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
 import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
+import { sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
 import { scheduleSnapshot } from '../export/snapshots'
+
+export const DISPO_ANCLA_KEY = 'dispoAncla'
+
+function getDispoAncla(): Promise<DispoAncla | null> {
+  return getMeta<DispoAncla | null>(DISPO_ANCLA_KEY, null)
+}
 
 export { uuid }
 
@@ -43,8 +50,9 @@ function recalcularDia(
   prev: Day | undefined,
   mapa: Map<DateKey, Day>,
   ctx?: BolsaCtx,
+  ancla?: DispoAncla | null,
 ): Day | null {
-  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx)
+  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx, ancla)
   const entries = fusionarEntradas(prev?.entries ?? [], autos)
   if (entries.length === 0) {
     // conserva la fila si el usuario ha descartado alguna categoría auto
@@ -57,23 +65,26 @@ function recalcularDia(
   return { date, entries, autoOff: prev?.autoOff, updatedAt: Date.now() }
 }
 
-/** Regenera las entradas auto en una ventana alrededor de `centro`. */
-async function regenerarAuto(centro: DateKey): Promise<void> {
-  const nucleoDesde = addDaysKey(centro, -3)
-  const nucleoHasta = addDaysKey(centro, 7)
-  // Contexto amplio: un viernes del núcleo necesita su domingo (−5) y margen.
-  const ctxRows = await db.days
-    .where('date')
-    .between(addDaysKey(centro, -12), addDaysKey(centro, 12), true, true)
-    .toArray()
+/**
+ * Recalcula un rango de fechas completo (crea filas nuevas si hace falta, p.
+ * ej. para que aparezca la disponibilidad T/D de un finde sin turno).
+ */
+async function regenerarEnRango(
+  nucleoDesde: DateKey,
+  nucleoHasta: DateKey,
+  ctxDesde: DateKey,
+  ctxHasta: DateKey,
+): Promise<void> {
+  const ctxRows = await db.days.where('date').between(ctxDesde, ctxHasta, true, true).toArray()
   const mapa = new Map(ctxRows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(ctxRows)
+  const ancla = await getDispoAncla()
 
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const date of keysBetween(nucleoDesde, nucleoHasta)) {
     const prev = mapa.get(date)
-    const next = recalcularDia(date, prev, mapa, ctx)
+    const next = recalcularDia(date, prev, mapa, ctx, ancla)
     if (next === prev) continue
     if (next === null) {
       if (prev) dels.push(date)
@@ -88,15 +99,38 @@ async function regenerarAuto(centro: DateKey): Promise<void> {
   })
 }
 
-/** Recalcula TODAS las entradas auto (migración / arranque). */
+/** Regenera las entradas auto en una ventana alrededor de `centro`. */
+async function regenerarAuto(centro: DateKey): Promise<void> {
+  // Contexto amplio: un viernes del núcleo necesita su domingo (−5) y margen.
+  await regenerarEnRango(
+    addDaysKey(centro, -3),
+    addDaysKey(centro, 7),
+    addDaysKey(centro, -12),
+    addDaysKey(centro, 12),
+  )
+}
+
+/**
+ * Regenera un rango de fechas arbitrario (p. ej. el mes que se está viendo en
+ * el calendario), creando filas nuevas si hace falta. A diferencia de
+ * `regenerarAuto`, no está limitado a los días que ya existen: así aparecen
+ * los findes T/D aunque no tengan turno ni ninguna otra anotación.
+ */
+export async function regenerarRangoVisible(fromKey: DateKey, toKey: DateKey): Promise<void> {
+  await regenerarEnRango(fromKey, toKey, addDaysKey(fromKey, -12), addDaysKey(toKey, 12))
+  scheduleSnapshot()
+}
+
+/** Recalcula TODAS las entradas auto de los días existentes (migración / arranque). */
 export async function regenerarTodo(): Promise<void> {
   const rows = await db.days.toArray()
   const mapa = new Map(rows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(rows)
+  const ancla = await getDispoAncla()
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const d of rows) {
-    const next = recalcularDia(d.date, d, mapa, ctx)
+    const next = recalcularDia(d.date, d, mapa, ctx, ancla)
     if (next === d) continue
     if (next === null) dels.push(d.date)
     else puts.push(next)
@@ -164,6 +198,8 @@ export async function overrideEntrada(
 function catOf(e: Entry): AutoCategoria | null {
   if (e.type === 'ajusteBolsa') return 'bolsa'
   if (e.type === 'complemento') return 'complemento'
+  if (e.type === 'libranzaComp') return 'libranza'
+  if (e.type === 'disponibilidad') return 'disponibilidad'
   return null
 }
 
@@ -194,6 +230,38 @@ export async function recalcularAutoDia(date: DateKey): Promise<void> {
   await db.days.put({ date, entries: manuales, autoOff: undefined, updatedAt: Date.now() })
   await regenerarAuto(date)
   scheduleSnapshot()
+}
+
+/**
+ * Fija la disponibilidad T/D de un finde completo (sábado + domingo, da igual
+ * en cuál de los dos se pulse). A partir de aquí alterna sola cada semana
+ * hasta que se vuelva a fijar otro finde, que pasa a ser el nuevo punto de
+ * partida de la alternancia.
+ */
+export async function setDisponibilidadFinde(date: DateKey, valor: Dispo): Promise<void> {
+  const sabado = sabadoDeFinde(date)
+  if (!sabado) return
+  const domingo = addDaysKey(sabado, 1)
+  await setMeta(DISPO_ANCLA_KEY, { sabado, valor } satisfies DispoAncla)
+  // por si ese finde estaba descartado antes, se reactiva
+  for (const d of [sabado, domingo]) {
+    const day = await db.days.get(d)
+    if (day?.autoOff?.includes('disponibilidad')) {
+      const autoOff = day.autoOff.filter((c) => c !== 'disponibilidad')
+      await db.days.put({ ...day, autoOff: autoOff.length ? autoOff : undefined })
+    }
+  }
+  // refresca un rango amplio para que el cambio se note ya en varios meses
+  await regenerarRangoVisible(addDaysKey(sabado, -60), addDaysKey(sabado, 60))
+}
+
+/** Quita la disponibilidad de un finde concreto (sábado + domingo). */
+export async function quitarDisponibilidadFinde(date: DateKey): Promise<void> {
+  const sabado = sabadoDeFinde(date)
+  if (!sabado) return
+  const domingo = addDaysKey(sabado, 1)
+  await setAutoOff(sabado, 'disponibilidad', true)
+  await setAutoOff(domingo, 'disponibilidad', true)
 }
 
 export interface TurnoBlockDay {

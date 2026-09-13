@@ -1,4 +1,4 @@
-import { format, getISOWeek, parse } from 'date-fns'
+import { differenceInCalendarDays, format, getISOWeek, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 /** Clave de día en hora local: "YYYY-MM-DD". Es la unidad de todo el modelo. */
@@ -96,4 +96,9 @@ export function ymOfKey(key: DateKey): { year: number; month0: number } {
 /** Número de semana ISO 8601 (semana que empieza en lunes, la 1.ª es la que tiene el primer jueves del año). */
 export function isoWeek(key: DateKey): number {
   return getISOWeek(parseKey(key))
+}
+
+/** Días de diferencia entre dos claves (a − b). Positivo si `a` es posterior. */
+export function diffDiasKeys(a: DateKey, b: DateKey): number {
+  return differenceInCalendarDays(parseKey(a), parseKey(b))
 }

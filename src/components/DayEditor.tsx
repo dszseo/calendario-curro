@@ -24,9 +24,11 @@ import {
   fillBajaRange,
   getDay,
   overrideEntrada,
+  quitarDisponibilidadFinde,
   recalcularAutoDia,
   removeEntry,
   setAutoOff,
+  setDisponibilidadFinde,
   setTurno,
   updateEntry,
 } from '../db/days'
@@ -114,6 +116,13 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
       onClose()
       return
     }
+    if (entry.type === 'disponibilidad') {
+      const d = entry as DisponibilidadEntry
+      await setDisponibilidadFinde(date, d.valor)
+      toast(`Finde marcado como ${d.valor} — alterna solo cada semana a partir de aquí`)
+      onClose()
+      return
+    }
     if ('id' in entry) await updateEntry(date, entry as Entry)
     else await addEntry(date, entry)
     onClose()
@@ -153,6 +162,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
                   const v = describeEntry(e)
                   const auto = esEntradaAuto(e)
                   const cat = categoriaDe(e)
+                  const esDispo = e.type === 'disponibilidad'
                   return (
                     <div class="entry-row" key={e.id}>
                       <span class={`swatch ${v.swatch}`} />
@@ -163,7 +173,24 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
                         {v.sub && <div class="sub">{v.sub}</div>}
                         {e.notes && <div class="sub">📝 {e.notes}</div>}
                       </div>
-                      {auto && cat ? (
+                      {esDispo ? (
+                        <>
+                          <button
+                            class="icon-btn"
+                            aria-label="Cambiar"
+                            onClick={() => setDraft({ mode: 'edit', entry: e })}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            class="icon-btn"
+                            aria-label="Quitar"
+                            onClick={() => quitarDisponibilidadFinde(date)}
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      ) : auto && cat ? (
                         <>
                           <button
                             class="icon-btn"
@@ -230,6 +257,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
 
         {draft.mode === 'add' && (
           <TypePicker
+            date={date}
             existing={entries}
             selected={draft.type}
             onSelect={(type) => setDraft({ mode: 'add', type })}
@@ -353,12 +381,14 @@ function BajaControls({
 }
 
 function TypePicker({
+  date,
   existing,
   selected,
   onSelect,
   onCancel,
   children,
 }: {
+  date: DateKey
   existing: Entry[]
   selected: EntryType
   onSelect: (t: EntryType) => void
@@ -370,15 +400,17 @@ function TypePicker({
       <div class="type-grid" style={{ marginBottom: '12px' }}>
         {ADDABLE.map((t) => {
           const c = canAddEntry(existing, t)
+          const soloFinde = t === 'disponibilidad' && !isWeekend(date)
+          const ok = c.ok && !soloFinde
           return (
             <button
               key={t}
-              disabled={!c.ok && t !== selected}
+              disabled={!ok && t !== selected}
               aria-pressed={t === selected}
               class={t === selected ? 'primary' : ''}
               style={t === selected ? { borderColor: 'var(--primary)', color: 'var(--primary)' } : undefined}
               onClick={() => onSelect(t)}
-              title={c.reason}
+              title={soloFinde ? 'Solo se puede fijar en sábado o domingo' : c.reason}
             >
               {ENTRY_LABEL[t]}
             </button>
@@ -739,17 +771,23 @@ function EntryForm({
       )}
 
       {type === 'disponibilidad' && (
-        <div class="field">
-          <label>Este fin de semana</label>
-          <SegmentedScale
-            options={[
-              { value: 'T', label: 'T — disponible' },
-              { value: 'D', label: 'D — descanso' },
-            ]}
-            value={dVal}
-            onChange={(v) => v && setDVal(v)}
-          />
-        </div>
+        <>
+          <p class="hint" style={{ marginBottom: '10px' }}>
+            Se aplica a todo el finde (sábado y domingo) y a partir de aquí alterna T/D sola cada
+            semana, hasta que fijes otro finde distinto.
+          </p>
+          <div class="field">
+            <label>Este fin de semana</label>
+            <SegmentedScale
+              options={[
+                { value: 'T', label: 'T — disponible' },
+                { value: 'D', label: 'D — descanso' },
+              ]}
+              value={dVal}
+              onChange={(v) => v && setDVal(v)}
+            />
+          </div>
+        </>
       )}
 
       {type === 'nota' && (
@@ -759,7 +797,7 @@ function EntryForm({
         </div>
       )}
 
-      {type !== 'nota' && <NotesField value={notes} onChange={setNotes} />}
+      {type !== 'nota' && type !== 'disponibilidad' && <NotesField value={notes} onChange={setNotes} />}
 
       <div class="row">
         <button class="btn ghost" onClick={onCancel}>

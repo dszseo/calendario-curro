@@ -152,6 +152,7 @@ export function describeEntry(e: Entry): EntryView {
     case 'disponibilidad':
       return {
         title: e.valor === 'T' ? 'Disponible este fin de semana (T)' : 'Descanso este fin de semana (D)',
+        sub: e.auto ? 'automático · alterna cada semana' : undefined,
         swatch: 'sw-nota',
       }
     case 'nota':

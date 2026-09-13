@@ -3,6 +3,7 @@ import type {
   AutoCategoria,
   ComplementoEntry,
   Day,
+  DisponibilidadEntry,
   Entry,
   LibranzaCompEntry,
 } from '../../db/types'
@@ -10,6 +11,7 @@ import { dowMon0, type DateKey } from '../datetime'
 import { bolsaCtx, turnoBolsa, type BolsaCtx } from './bolsa'
 import { complementosDia } from './complementos'
 import { libranzaCompDia } from './libranzas'
+import { dispoDeFinde, sabadoDeFinde, type DispoAncla } from './disponibilidad'
 
 /**
  * Entradas que la app genera y mantiene sola al rellenar turnos/festivos.
@@ -26,6 +28,7 @@ export function categoriaDe(e: Entry): AutoCategoria | null {
   if (e.type === 'ajusteBolsa') return 'bolsa'
   if (e.type === 'complemento') return 'complemento'
   if (e.type === 'libranzaComp') return 'libranza'
+  if (e.type === 'disponibilidad') return 'disponibilidad'
   return null
 }
 
@@ -76,31 +79,47 @@ export function autoLibranzaCompDia(date: DateKey, dias: Map<DateKey, Day>): Lib
   return [{ id: `auto-libra-${date}`, type: 'libranzaComp', dia: c.dia, auto: true }]
 }
 
+/** Disponibilidad T/D automática de un sábado/domingo, según el ancla activa. */
+export function autoDisponibilidadDia(
+  date: DateKey,
+  ancla: DispoAncla | null | undefined,
+): DisponibilidadEntry[] {
+  const sabado = sabadoDeFinde(date)
+  if (!sabado) return []
+  const valor = dispoDeFinde(sabado, ancla ?? null)
+  if (!valor) return []
+  return [{ id: `auto-dispo-${date}`, type: 'disponibilidad', valor, auto: true }]
+}
+
 /** Todas las entradas auto de un día, respetando las categorías descartadas. */
 export function entradasAutoDia(
   date: DateKey,
   dias: Map<DateKey, Day>,
   autoOff: AutoCategoria[] = [],
   ctx?: BolsaCtx,
+  ancla?: DispoAncla | null,
 ): Entry[] {
   const off = new Set(autoOff)
   const out: Entry[] = []
   if (!off.has('bolsa')) out.push(...autoBolsaDia(date, dias, ctx))
   if (!off.has('complemento')) out.push(...autoComplementoDia(date, dias))
   if (!off.has('libranza')) out.push(...autoLibranzaCompDia(date, dias))
+  if (!off.has('disponibilidad')) out.push(...autoDisponibilidadDia(date, ancla))
   return out
 }
 
 /**
  * Recalcula las entradas auto de una lista de días (útil para tests y para la
- * migración en memoria). No toca la base de datos.
+ * migración en memoria). No toca la base de datos. Los días sin fila propia
+ * (p. ej. un finde sin turno) no se generan aquí — para eso hace falta iterar
+ * el rango de fechas, ver `regenerarRangoVisible` en `db/days.ts`.
  */
-export function regenerarEnMemoria(days: Day[]): Day[] {
+export function regenerarEnMemoria(days: Day[], ancla: DispoAncla | null = null): Day[] {
   const mapa = new Map(days.map((d) => [d.date, d]))
   const ctx = bolsaCtx(days)
   return days
     .map((d) => {
-      const autos = entradasAutoDia(d.date, mapa, d.autoOff, ctx)
+      const autos = entradasAutoDia(d.date, mapa, d.autoOff, ctx, ancla)
       const entries = fusionarEntradas(d.entries, autos)
       return { ...d, entries }
     })
