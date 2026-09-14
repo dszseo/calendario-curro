@@ -136,8 +136,9 @@ export function DiasAnio() {
         ))}
 
       <p class="hint">
-        Recuerda: vacaciones y asuntos propios suelen caducar antes del 31 de agosto. El aviso
-        automático de noviembre llega en una fase posterior.
+        Recuerda: los asuntos propios sin gastar caducan el <strong>1 de enero</strong> (hay que
+        pedirlos dentro del mismo año); las vacaciones, el <strong>31 de enero del año
+        siguiente</strong>. El aviso automático antes de esas fechas llega en una fase posterior.
       </p>
     </div>
   )
