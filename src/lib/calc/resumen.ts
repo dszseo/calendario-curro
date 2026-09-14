@@ -61,6 +61,11 @@ export function resumenMes(days: Day[]): ResumenMes {
           break
         case 'libranza':
           r.libranzas[e.motivo]++
+          // la libranza de 1 día (sección 17) cuenta para el mismo total que la
+          // entrada dedicada — son dos formas de anotar lo mismo.
+          if (e.motivo === 'vacaciones') r.vacaciones++
+          else if (e.motivo === 'asuntos') r.asuntosPropios++
+          else if (e.motivo === 'regulacion') r.regulacion++
           break
         case 'festivo':
           r.festivos++

@@ -6,6 +6,7 @@ import { Home } from './routes/Home'
 import { Settings } from './routes/Settings'
 import { Nomina } from './routes/Nomina'
 import { BolsaAnual } from './routes/BolsaAnual'
+import { DiasAnio } from './routes/DiasAnio'
 import { requestPersistentStorage } from './lib/persist'
 import { regenerarTodo } from './db/days'
 
@@ -17,6 +18,7 @@ const routes = [
   { pattern: '/', component: Home },
   { pattern: '/nomina', component: Nomina },
   { pattern: '/bolsa-anio', component: BolsaAnual },
+  { pattern: '/dias-anio', component: DiasAnio },
   { pattern: '/ajustes', component: Settings },
 ]
 

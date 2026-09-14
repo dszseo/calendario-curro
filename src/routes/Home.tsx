@@ -85,6 +85,9 @@ export function Home() {
         <button class="btn ghost block" onClick={() => loc.route('/bolsa-anio')}>
           📋 Ver bolsa del año
         </button>
+        <button class="btn ghost block" onClick={() => loc.route('/dias-anio')}>
+          🏖️ Vacaciones y días del año
+        </button>
         <button class="btn ghost block" onClick={() => loc.route('/ajustes')}>
           ⚙️ Ajustes y copia de seguridad
         </button>

@@ -39,4 +39,18 @@ describe('resumenMes', () => {
     // −2 (ajuste) + 8 (sábado auto) + 8 (extra) − 8 (libranza horas) = +6
     expect(r.variacionBolsa).toBe(6)
   })
+
+  it('vacaciones/AP/regulación cuentan igual como entrada dedicada o como libranza de 1 día', () => {
+    const r = resumenMes([
+      day('2026-09-01', [e({ type: 'vacaciones' })]),
+      day('2026-09-02', [e({ type: 'libranza', motivo: 'vacaciones' })]),
+      day('2026-09-03', [e({ type: 'asuntoPropio' })]),
+      day('2026-09-04', [e({ type: 'libranza', motivo: 'asuntos' })]),
+      day('2026-09-05', [e({ type: 'regulacion' })]),
+      day('2026-09-08', [e({ type: 'libranza', motivo: 'regulacion' })]),
+    ])
+    expect(r.vacaciones).toBe(2)
+    expect(r.asuntosPropios).toBe(2)
+    expect(r.regulacion).toBe(2)
+  })
 })
