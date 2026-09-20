@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useLocation } from '../router'
 import { daysMapInRange, getDaysInRange, regenerarRangoVisible } from '../db/days'
@@ -47,28 +47,55 @@ export function Home() {
     setYm({ y: d.getFullYear(), m: d.getMonth() })
   }
 
+  // Deslizar con el dedo para cambiar de mes (cabecera + rejilla de días).
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const SWIPE_MIN_PX = 50
+
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+  }
+  const onTouchEnd = (e: TouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      shift(dx < 0 ? 1 : -1)
+    }
+  }
+
   return (
     <div>
-      <div class="cal-head">
-        <button class="icon-btn nav" aria-label="Mes anterior" onClick={() => shift(-1)}>
-          ←
-        </button>
-        <h2 onClick={goToday} style={{ cursor: 'pointer' }}>
-          {monthTitle(ym.y, ym.m)}
-        </h2>
-        <button class="icon-btn nav" aria-label="Mes siguiente" onClick={() => shift(1)}>
-          →
-        </button>
+      <div
+        class="cal-swipe"
+        style={{ touchAction: 'pan-y' }}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div class="cal-head">
+          <button class="icon-btn nav" aria-label="Mes anterior" onClick={() => shift(-1)}>
+            ←
+          </button>
+          <h2 onClick={goToday} style={{ cursor: 'pointer' }}>
+            {monthTitle(ym.y, ym.m)}
+          </h2>
+          <button class="icon-btn nav" aria-label="Mes siguiente" onClick={() => shift(1)}>
+            →
+          </button>
+        </div>
+
+        <BackupReminder />
+
+        <Calendar
+          year={ym.y}
+          month0={ym.m}
+          daysMap={daysMap ?? new Map()}
+          onPickDay={setPicked}
+        />
       </div>
-
-      <BackupReminder />
-
-      <Calendar
-        year={ym.y}
-        month0={ym.m}
-        daysMap={daysMap ?? new Map()}
-        onPickDay={setPicked}
-      />
 
       <div style={{ height: '16px' }} />
       <button class="btn ghost block" onClick={() => setPicked(todayKey())}>

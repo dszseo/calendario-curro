@@ -22,6 +22,7 @@ import {
   applyTurnoBlock,
   daysMapInRange,
   fillBajaRange,
+  fillVacacionesRange,
   getDay,
   overrideEntrada,
   quitarDisponibilidadFinde,
@@ -52,14 +53,14 @@ import { SegmentedScale, YesNo } from './SegmentedScale'
 import { CollapsibleSection } from './CollapsibleSection'
 
 const BAJA_KEY = 'bajaAbiertaDesde'
+const VAC_KEY = 'vacacionesAbiertaDesde'
 
-// Tipos que se añaden desde el editor (baja se gestiona con el flujo de rango).
+// Tipos que se añaden desde el editor (baja y vacaciones se gestionan con el flujo de rango).
 const ADDABLE: EntryType[] = [
   'turno',
   'horaExtra',
   'libranza',
   'festivo',
-  'vacaciones',
   'asuntoPropio',
   'regulacion',
   'permiso',
@@ -80,6 +81,7 @@ type Draft =
 export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => void }) {
   const day = useLiveQuery(() => getDay(date), [date])
   const bajaDesde = useLiveQuery(() => getMeta<DateKey | null>(BAJA_KEY, null), [], null)
+  const vacDesde = useLiveQuery(() => getMeta<DateKey | null>(VAC_KEY, null), [], null)
   const [draft, setDraft] = useState<Draft>({ mode: 'list' })
 
   const entries = day?.entries ?? []
@@ -138,6 +140,23 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
     const n = await fillBajaRange(desde, date)
     await setMeta(BAJA_KEY, null)
     toast(`Baja de ${n} días rellenada`)
+  }
+
+  async function startVacacionesSolo() {
+    await addEntry(date, { type: 'vacaciones' } as Omit<Entry, 'id'>)
+    toast('Día de vacaciones añadido')
+  }
+
+  async function startVacacionesRango() {
+    await addEntry(date, { type: 'vacaciones' } as Omit<Entry, 'id'>)
+    await setMeta(VAC_KEY, date)
+    toast('Vacaciones iniciadas. Marca el último día para rellenar el rango.')
+  }
+
+  async function endVacaciones(desde: DateKey) {
+    const n = await fillVacacionesRange(desde, date)
+    await setMeta(VAC_KEY, null)
+    toast(`Vacaciones: ${n} día(s) rellenados (findes y festivos no cuentan)`)
   }
 
   return (
@@ -251,6 +270,15 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
               bajaDesde={bajaDesde ?? null}
               onStart={startBaja}
               onEnd={endBaja}
+            />
+
+            <VacacionesControls
+              date={date}
+              entries={entries}
+              vacDesde={vacDesde ?? null}
+              onStartSolo={startVacacionesSolo}
+              onStartRango={startVacacionesRango}
+              onEnd={endVacaciones}
             />
           </>
         )}
@@ -375,6 +403,79 @@ function BajaControls({
     <div style={{ marginTop: '10px' }}>
       <button class="btn block" onClick={onStart}>
         Marcar inicio de baja médica aquí
+      </button>
+    </div>
+  )
+}
+
+function VacacionesControls({
+  date,
+  entries,
+  vacDesde,
+  onStartSolo,
+  onStartRango,
+  onEnd,
+}: {
+  date: DateKey
+  entries: Entry[]
+  vacDesde: DateKey | null
+  onStartSolo: () => void
+  onStartRango: () => void
+  onEnd: (desde: DateKey) => void
+}) {
+  const [asking, setAsking] = useState(false)
+  const yaVac = entries.some((e) => e.type === 'vacaciones')
+
+  if (vacDesde && date >= vacDesde) {
+    return (
+      <div style={{ marginTop: '10px' }}>
+        <button class="btn block" onClick={() => onEnd(vacDesde)}>
+          Marcar fin de vacaciones aquí (rellena desde {shortDate(vacDesde)})
+        </button>
+      </div>
+    )
+  }
+  if (vacDesde) {
+    return <p class="hint" style={{ marginTop: '10px' }}>Vacaciones abiertas desde {shortDate(vacDesde)}.</p>
+  }
+  if (yaVac || isWeekend(date)) return null
+
+  if (asking) {
+    return (
+      <div class="card" style={{ padding: '12px', marginTop: '10px' }}>
+        <p class="hint" style={{ marginBottom: '10px' }}>
+          ¿Vas a estar de vacaciones solo este día o vas a marcar varios días seguidos?
+        </p>
+        <div class="stack">
+          <button
+            class="btn block"
+            onClick={() => {
+              setAsking(false)
+              onStartSolo()
+            }}
+          >
+            Solo este día
+          </button>
+          <button
+            class="btn block"
+            onClick={() => {
+              setAsking(false)
+              onStartRango()
+            }}
+          >
+            Varios días (elegiré el último)
+          </button>
+          <button class="btn ghost block" onClick={() => setAsking(false)}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <button class="btn block" onClick={() => setAsking(true)}>
+        🏖️ Marcar vacaciones aquí
       </button>
     </div>
   )

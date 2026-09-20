@@ -1,6 +1,6 @@
 import { db, getMeta, setMeta, uuid } from './db'
 import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
-import { addDaysKey, keysBetween, type DateKey } from '../lib/datetime'
+import { addDaysKey, isWeekend, keysBetween, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
 import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
 import { conAncla, sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
@@ -333,4 +333,28 @@ export async function fillBajaRange(
   for (const date of keys) await regenerarAuto(date)
   scheduleSnapshot()
   return keys.length
+}
+
+/**
+ * Rellena un rango como vacaciones. Salta los fines de semana y los días que
+ * ya tengan un festivo anotado (ni cuentan ni se tocan). En cada día laborable
+ * restante deja solo la vacación, más las notas que ya hubiera.
+ */
+export async function fillVacacionesRange(fromKey: DateKey, toKey: DateKey): Promise<number> {
+  const dias = keysBetween(fromKey, toKey).filter((d) => !isWeekend(d))
+  const rellenados: DateKey[] = []
+  await db.transaction('rw', db.days, async () => {
+    for (const date of dias) {
+      const current = (await db.days.get(date))?.entries ?? []
+      if (current.some((e) => e.type === 'vacaciones')) continue
+      if (current.some((e) => e.type === 'festivo')) continue
+      const keep = current.filter((e) => e.type === 'nota')
+      const vac: Entry = { id: uuid(), type: 'vacaciones' }
+      await db.days.put({ date, entries: [vac, ...keep], updatedAt: Date.now() })
+      rellenados.push(date)
+    }
+  })
+  for (const date of rellenados) await regenerarAuto(date)
+  scheduleSnapshot()
+  return rellenados.length
 }
