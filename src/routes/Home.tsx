@@ -28,6 +28,7 @@ export function Home() {
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [picked, setPicked] = useState<DateKey | null>(null)
+  const [dir, setDir] = useState<1 | -1>(1)
 
   const { fromKey, toKey } = monthKeyRange(ym.y, ym.m)
   const daysMap = useLiveQuery(() => daysMapInRange(fromKey, toKey), [fromKey, toKey], new Map())
@@ -39,11 +40,13 @@ export function Home() {
   }, [fromKey, toKey])
 
   const shift = (delta: number) => {
+    setDir(delta >= 0 ? 1 : -1)
     const d = new Date(ym.y, ym.m + delta, 1)
     setYm({ y: d.getFullYear(), m: d.getMonth() })
   }
   const goToday = () => {
     const d = new Date()
+    setDir(d.getFullYear() !== ym.y ? (d.getFullYear() > ym.y ? 1 : -1) : d.getMonth() >= ym.m ? 1 : -1)
     setYm({ y: d.getFullYear(), m: d.getMonth() })
   }
 
@@ -70,7 +73,8 @@ export function Home() {
   return (
     <div>
       <div
-        class="cal-swipe"
+        key={`${ym.y}-${ym.m}`}
+        class={`cal-swipe ${dir === 1 ? 'cal-slide-next' : 'cal-slide-prev'}`}
         style={{ touchAction: 'pan-y' }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

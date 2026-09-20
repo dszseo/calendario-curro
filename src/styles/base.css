@@ -246,6 +246,15 @@ textarea { resize: vertical; min-height: 62px; }
 .cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .cal-head h2 { flex: 1; text-align: center; margin: 0; }
 
+/* Transición al cambiar de mes (swipe o flechas). */
+@keyframes cal-slide-next { from { transform: translateX(28px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes cal-slide-prev { from { transform: translateX(-28px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.cal-slide-next { animation: cal-slide-next 200ms ease-out; }
+.cal-slide-prev { animation: cal-slide-prev 200ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .cal-slide-next, .cal-slide-prev { animation: none; }
+}
+
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .cal-dow { text-align: center; font-size: .72rem; color: var(--text-dim); font-weight: 700; padding: 4px 0; }
 .cal-dow.we { color: var(--festivo); }

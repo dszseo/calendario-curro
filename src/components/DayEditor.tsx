@@ -134,29 +134,34 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
     await addEntry(date, { type: 'baja' } as Omit<Entry, 'id'>)
     await setMeta(BAJA_KEY, date)
     toast('Baja iniciada. Marca el último día para rellenar el rango.')
+    onClose()
   }
 
   async function endBaja(desde: DateKey) {
     const n = await fillBajaRange(desde, date)
     await setMeta(BAJA_KEY, null)
     toast(`Baja de ${n} días rellenada`)
+    onClose()
   }
 
   async function startVacacionesSolo() {
     await addEntry(date, { type: 'vacaciones' } as Omit<Entry, 'id'>)
     toast('Día de vacaciones añadido')
+    onClose()
   }
 
   async function startVacacionesRango() {
     await addEntry(date, { type: 'vacaciones' } as Omit<Entry, 'id'>)
     await setMeta(VAC_KEY, date)
     toast('Vacaciones iniciadas. Marca el último día para rellenar el rango.')
+    onClose()
   }
 
   async function endVacaciones(desde: DateKey) {
     const n = await fillVacacionesRange(desde, date)
     await setMeta(VAC_KEY, null)
     toast(`Vacaciones: ${n} día(s) rellenados (findes y festivos no cuentan)`)
+    onClose()
   }
 
   return (
