@@ -54,6 +54,9 @@ function dayBadges(day: Day | undefined): Badges {
       case 'disponibilidad':
         b.tags.push({ cls: 'dispo', label: e.valor })
         break
+      case 'complemento':
+        b.tags.push({ cls: 'festivo', label: e.tipo === 'sabado' ? '+S' : '+F' })
+        break
       case 'nota':
         b.tags.push({ cls: 'nota', label: '✎' })
         break
