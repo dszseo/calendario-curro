@@ -6,66 +6,64 @@ const PERIODO_INICIAL: Record<Periodo, string> = { manana: 'M', tarde: 'T', noch
 
 interface Badges {
   strip?: { cls: string; label: string }
-  tags: { cls: string; label: string }[]
+  count: number
 }
 
 function dayBadges(day: Day | undefined): Badges {
-  const b: Badges = { tags: [] }
-  if (!day) return b
+  if (!day) return { count: 0 }
   const libraComp = day.entries.some((e) => e.type === 'libranzaComp')
+  let strip: Badges['strip']
+  const labels = new Set<string>()
   for (const e of day.entries) {
     switch (e.type) {
       case 'turno':
-        if (!libraComp) b.strip = { cls: e.periodo, label: PERIODO_INICIAL[e.periodo] }
+        if (!libraComp) strip = { cls: e.periodo, label: PERIODO_INICIAL[e.periodo] }
         break
       case 'libranzaComp':
-        b.tags.push({ cls: 'libra', label: 'LIBRE' })
+        labels.add('LIBRE')
         break
       case 'festivo':
-        b.tags.push({ cls: 'festivo', label: 'FEST' })
+        labels.add('FEST')
         break
       case 'libranza':
-        b.tags.push({ cls: 'libra', label: 'LIBRE' })
+        labels.add('LIBRE')
         break
       case 'vacaciones':
-        b.tags.push({ cls: 'vac', label: 'VAC' })
+        labels.add('VAC')
         break
       case 'asuntoPropio':
-        b.tags.push({ cls: 'libra', label: 'AP' })
+        labels.add('AP')
         break
       case 'regulacion':
-        b.tags.push({ cls: 'libra', label: 'REG' })
+        labels.add('REG')
         break
       case 'permiso':
-        b.tags.push({ cls: 'libra', label: 'PER' })
+        labels.add('PER')
         break
       case 'baja':
-        b.tags.push({ cls: 'baja', label: 'BAJA' })
+        labels.add('BAJA')
         break
       case 'diaEspecial':
-        b.tags.push({ cls: 'extra', label: 'ESP' })
+        labels.add('ESP')
         break
       case 'horaExtra':
-        b.tags.push({ cls: 'extra', label: e.destino === 'bolsa' ? '+B' : '+EX' })
+        labels.add(e.destino === 'bolsa' ? '+B' : '+EX')
         break
       case 'ajusteBolsa':
-        b.tags.push({ cls: 'extra', label: e.horas >= 0 ? '+h' : '−h' })
+        labels.add(e.horas >= 0 ? '+h' : '−h')
         break
       case 'disponibilidad':
-        b.tags.push({ cls: 'dispo', label: e.valor })
+        labels.add(e.valor)
         break
       case 'complemento':
-        b.tags.push({ cls: 'festivo', label: e.tipo === 'sabado' ? '+S' : '+F' })
+        labels.add(e.tipo === 'sabado' ? '+S' : '+F')
         break
       case 'nota':
-        b.tags.push({ cls: 'nota', label: '✎' })
+        labels.add('✎')
         break
     }
   }
-  // dedup por etiqueta y máximo 3
-  const seen = new Set<string>()
-  b.tags = b.tags.filter((t) => (seen.has(t.label) ? false : (seen.add(t.label), true))).slice(0, 3)
-  return b
+  return { strip, count: labels.size }
 }
 
 function buildGrid(year: number, month0: number): (DateKey | null)[] {
@@ -135,15 +133,7 @@ export function Calendar({
                     onClick={() => onPickDay(key)}
                   >
                     <span class="d-num">{Number(key.slice(-2))}</span>
-                    {badges.tags.length > 0 && (
-                      <span class="d-tags">
-                        {badges.tags.map((t, j) => (
-                          <span class={`d-tag ${t.cls}`} key={j}>
-                            {t.label}
-                          </span>
-                        ))}
-                      </span>
-                    )}
+                    {badges.count > 0 && <span class="d-more">+{badges.count}</span>}
                     {badges.strip && <span class={`d-turno ${badges.strip.cls}`}>{badges.strip.label}</span>}
                   </button>
                 )

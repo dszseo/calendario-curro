@@ -304,28 +304,19 @@ textarea { resize: vertical; min-height: 62px; }
 .d-turno.manana { background: var(--manana); }
 .d-turno.tarde { background: var(--tarde); }
 .d-turno.noche { background: var(--noche); }
-.cal-cell .d-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 2px 3px;
-  justify-content: center;
-}
-.d-tag {
+/* Indicador único de "hay más cosas ese día" (toca el día para verlas). */
+.d-more {
+  position: absolute;
+  top: 2px;
+  right: 3px;
   font-size: .58rem;
   font-weight: 800;
   line-height: 1.3;
   padding: 0 3px;
   border-radius: 4px;
+  background: var(--text-dim);
   color: #fff;
 }
-.d-tag.libra { background: var(--libra); }
-.d-tag.festivo { background: var(--festivo); }
-.d-tag.baja { background: var(--baja); }
-.d-tag.vac { background: var(--vacaciones); }
-.d-tag.extra { background: var(--extra); }
-.d-tag.dispo { background: var(--text-dim); }
-.d-tag.nota { background: transparent; color: var(--text-dim); padding: 0; }
 
 /* ---------- Resumen mensual ---------- */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
