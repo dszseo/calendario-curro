@@ -1,6 +1,6 @@
 import { db, getMeta, setMeta, uuid } from './db'
 import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
-import { addDaysKey, isWeekend, keysBetween, type DateKey } from '../lib/datetime'
+import { addDaysKey, dowMon0, isWeekend, keysBetween, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
 import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
 import { conAncla, sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
@@ -267,6 +267,65 @@ export async function quitarDisponibilidadFinde(date: DateKey): Promise<void> {
   const domingo = addDaysKey(sabado, 1)
   await setAutoOff(sabado, 'disponibilidad', true)
   await setAutoOff(domingo, 'disponibilidad', true)
+}
+
+/** Horizonte al "apagar" disponibilidad desde una fecha: no hay forma de
+ *  decir "para siempre" con el modelo de anclas, así que se cubre un rango
+ *  largo de sobra (10 años) en vez de dejarlo sin límite. */
+const HORIZONTE_BORRAR_DISPO_DIAS = 3650
+
+/**
+ * Borra la disponibilidad T/D.
+ * - `desde === null`: borra TODO — las anclas y cualquier entrada/descarte de
+ *   disponibilidad en toda la base, pasado incluido.
+ * - `desde = fecha`: conserva tal cual todo lo anterior a esa fecha (lo
+ *   pasado no se toca) y apaga la disponibilidad desde el sábado de esa
+ *   semana en adelante, durante `HORIZONTE_BORRAR_DISPO_DIAS` días.
+ */
+export async function borrarDisponibilidad(desde: DateKey | null): Promise<void> {
+  if (desde === null) {
+    await setMeta(DISPO_ANCLA_KEY, [])
+    const rows = await db.days.toArray()
+    const puts: Day[] = []
+    const dels: DateKey[] = []
+    for (const d of rows) {
+      const teniaDispo = d.entries.some((e) => e.type === 'disponibilidad') || d.autoOff?.includes('disponibilidad')
+      if (!teniaDispo) continue
+      const entries = d.entries.filter((e) => e.type !== 'disponibilidad')
+      const autoOff = (d.autoOff ?? []).filter((c) => c !== 'disponibilidad')
+      if (entries.length === 0 && autoOff.length === 0) dels.push(d.date)
+      else puts.push({ ...d, entries, autoOff: autoOff.length ? autoOff : undefined, updatedAt: Date.now() })
+    }
+    await db.transaction('rw', db.days, async () => {
+      for (const p of puts) await db.days.put(p)
+      for (const k of dels) await db.days.delete(k)
+    })
+    scheduleSnapshot()
+    return
+  }
+
+  let sabado = desde
+  while (dowMon0(sabado) !== 5) sabado = addDaysKey(sabado, 1)
+
+  const anclas = await getDispoAnclas()
+  await setMeta(DISPO_ANCLA_KEY, anclas.filter((a) => a.sabado < sabado))
+
+  const hasta = addDaysKey(sabado, HORIZONTE_BORRAR_DISPO_DIAS)
+  const finde: DateKey[] = []
+  for (let s = sabado; s <= hasta; s = addDaysKey(s, 7)) finde.push(s, addDaysKey(s, 1))
+
+  const existentes = await db.days.where('date').anyOf(finde).toArray()
+  const mapa = new Map(existentes.map((d) => [d.date, d]))
+  const puts: Day[] = finde.map((date) => {
+    const prev = mapa.get(date)
+    const entries = (prev?.entries ?? []).filter((e) => e.type !== 'disponibilidad')
+    const autoOff = [...new Set([...(prev?.autoOff ?? []), 'disponibilidad' as AutoCategoria])]
+    return { date, entries, autoOff, updatedAt: Date.now() }
+  })
+  await db.transaction('rw', db.days, async () => {
+    for (const p of puts) await db.days.put(p)
+  })
+  scheduleSnapshot()
 }
 
 export interface TurnoBlockDay {

@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useLocation } from '../router'
 import { db, getMeta, setMeta, SCHEMA_VERSION } from '../db/db'
 import { BOLSA_INICIAL_KEY, saldoBolsa } from '../db/bolsa'
+import { borrarDisponibilidad } from '../db/days'
+import { todayKey } from '../lib/datetime'
 import {
   backupFilename,
   backupToString,
@@ -37,6 +39,7 @@ export function Settings() {
         <span style={{ width: '46px' }} />
       </div>
       <BolsaInicialSection />
+      <DisponibilidadSection />
       <BackupSection />
       <SnapshotsSection />
       <StorageSection />
@@ -85,6 +88,82 @@ function BolsaInicialSection() {
       </div>
       <p class="hint">Saldo total actual: <strong>{saldo == null ? '…' : `${saldo} h`}</strong></p>
     </section>
+  )
+}
+
+function DisponibilidadSection() {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <section class="section">
+      <h2>Disponibilidad T/D</h2>
+      <p class="hint">
+        Una vez fijas un finde de T o D, alterna sola cada semana hacia delante sin fin. Aquí
+        puedes borrarla si te has equivocado o ya no aplica.
+      </p>
+      <button class="btn danger ghost block" onClick={() => setAbierto(true)}>
+        Borrar disponibilidad T/D
+      </button>
+      {abierto && <BorrarDisponibilidadDialog onClose={() => setAbierto(false)} />}
+    </section>
+  )
+}
+
+function BorrarDisponibilidadDialog({ onClose }: { onClose: () => void }) {
+  const [modo, setModo] = useState<'todo' | 'desde'>('desde')
+  const [fecha, setFecha] = useState(todayKey())
+  const [busy, setBusy] = useState(false)
+
+  async function confirmar() {
+    setBusy(true)
+    try {
+      await borrarDisponibilidad(modo === 'todo' ? null : fecha)
+      toast(modo === 'todo' ? 'Disponibilidad T/D borrada del todo' : `Disponibilidad T/D borrada desde ${fecha}`)
+      onClose()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div class="dialog-backdrop" onClick={onClose}>
+      <div class="dialog" onClick={(e) => e.stopPropagation()}>
+        <h2>Borrar disponibilidad T/D</h2>
+        <div class="field" style={{ marginTop: '4px' }}>
+          <div class="seg">
+            <button type="button" aria-pressed={modo === 'desde'} onClick={() => setModo('desde')}>
+              Desde una fecha
+            </button>
+            <button type="button" aria-pressed={modo === 'todo'} onClick={() => setModo('todo')}>
+              Todo
+            </button>
+          </div>
+        </div>
+        {modo === 'desde' ? (
+          <>
+            <div class="field" style={{ marginTop: '10px' }}>
+              <label>Borrar desde (el sábado de esa semana en adelante)</label>
+              <input type="date" value={fecha} onInput={(e) => setFecha((e.target as HTMLInputElement).value)} />
+            </div>
+            <p class="hint">
+              Lo anterior a esa fecha no se toca. De ahí en adelante deja de alternar T/D
+              (cubre los próximos 10 años).
+            </p>
+          </>
+        ) : (
+          <p class="hint">
+            Borra toda la disponibilidad T/D, pasada y futura, de golpe. No se puede deshacer.
+          </p>
+        )}
+        <div class="actions">
+          <button class="btn ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </button>
+          <button class="btn danger" onClick={confirmar} disabled={busy}>
+            Borrar
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
