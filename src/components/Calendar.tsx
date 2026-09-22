@@ -1,4 +1,5 @@
 import type { Day, Periodo } from '../db/types'
+import type { Dispo } from '../lib/calc/disponibilidad'
 import { addDaysKey, isoWeek, localDateKey, todayKey, type DateKey } from '../lib/datetime'
 
 const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -6,6 +7,7 @@ const PERIODO_INICIAL: Record<Periodo, string> = { manana: 'M', tarde: 'T', noch
 
 interface Badges {
   strip?: { cls: string; label: string }
+  dispo?: Dispo
   count: number
 }
 
@@ -18,6 +20,7 @@ function dayBadges(day: Day | undefined): Badges {
   // igual que el turno — no tiene sentido dejarlo en un +N genérico.
   const sinTurnoEfectivo = libraComp || !day.entries.some((e) => e.type === 'turno')
   let strip: Badges['strip']
+  let dispo: Dispo | undefined
   const labels = new Set<string>()
   for (const e of day.entries) {
     switch (e.type) {
@@ -66,7 +69,8 @@ function dayBadges(day: Day | undefined): Badges {
         labels.add(e.horas >= 0 ? '+h' : '−h')
         break
       case 'disponibilidad':
-        labels.add(e.valor)
+        // T/D tiene su propio hueco junto al número del día, no cuenta en +N.
+        dispo = e.valor
         break
       case 'complemento':
         labels.add(e.tipo === 'sabado' ? '+S' : '+F')
@@ -76,7 +80,7 @@ function dayBadges(day: Day | undefined): Badges {
         break
     }
   }
-  return { strip, count: labels.size }
+  return { strip, dispo, count: labels.size }
 }
 
 function buildGrid(year: number, month0: number): (DateKey | null)[] {
@@ -145,7 +149,10 @@ export function Calendar({
                     class={`cal-cell ${key === today ? 'today' : ''} ${dow >= 5 ? 'we' : ''}`}
                     onClick={() => onPickDay(key)}
                   >
-                    <span class="d-num">{Number(key.slice(-2))}</span>
+                    <span class="d-top">
+                      <span class="d-num">{Number(key.slice(-2))}</span>
+                      {badges.dispo && <span class="d-dispo">{badges.dispo}</span>}
+                    </span>
                     {badges.count > 0 && <span class="d-more">+{badges.count}</span>}
                     {badges.strip && <span class={`d-turno ${badges.strip.cls}`}>{badges.strip.label}</span>}
                   </button>
