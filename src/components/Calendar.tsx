@@ -12,6 +12,11 @@ interface Badges {
 function dayBadges(day: Day | undefined): Badges {
   if (!day) return { count: 0 }
   const libraComp = day.entries.some((e) => e.type === 'libranzaComp')
+  // Días sin turno de verdad ese día (turno ausente, o presente pero
+  // compensado por una libranza): el motivo (libre, baja, vacaciones,
+  // festivo marcado...) es el estado del día y se pinta como tira grande,
+  // igual que el turno — no tiene sentido dejarlo en un +N genérico.
+  const sinTurnoEfectivo = libraComp || !day.entries.some((e) => e.type === 'turno')
   let strip: Badges['strip']
   const labels = new Set<string>()
   for (const e of day.entries) {
@@ -20,31 +25,39 @@ function dayBadges(day: Day | undefined): Badges {
         if (!libraComp) strip = { cls: e.periodo, label: PERIODO_INICIAL[e.periodo] }
         break
       case 'libranzaComp':
-        labels.add('LIBRE')
+        strip = { cls: 'libra', label: 'LIBRE' }
         break
       case 'festivo':
-        labels.add('FEST')
+        if (sinTurnoEfectivo) strip = { cls: 'festivo', label: 'FEST' }
+        else labels.add('FEST')
         break
       case 'libranza':
-        labels.add('LIBRE')
+        if (sinTurnoEfectivo) strip = { cls: 'libra', label: 'LIBRE' }
+        else labels.add('LIBRE')
         break
       case 'vacaciones':
-        labels.add('VAC')
+        if (sinTurnoEfectivo) strip = { cls: 'vac', label: 'VAC' }
+        else labels.add('VAC')
         break
       case 'asuntoPropio':
-        labels.add('AP')
+        if (sinTurnoEfectivo) strip = { cls: 'libra', label: 'AP' }
+        else labels.add('AP')
         break
       case 'regulacion':
-        labels.add('REG')
+        if (sinTurnoEfectivo) strip = { cls: 'libra', label: 'REG' }
+        else labels.add('REG')
         break
       case 'permiso':
-        labels.add('PER')
+        if (sinTurnoEfectivo) strip = { cls: 'libra', label: 'PER' }
+        else labels.add('PER')
         break
       case 'baja':
-        labels.add('BAJA')
+        if (sinTurnoEfectivo) strip = { cls: 'baja', label: 'BAJA' }
+        else labels.add('BAJA')
         break
       case 'diaEspecial':
-        labels.add('ESP')
+        if (sinTurnoEfectivo) strip = { cls: 'extra', label: 'ESP' }
+        else labels.add('ESP')
         break
       case 'horaExtra':
         labels.add(e.destino === 'bolsa' ? '+B' : '+EX')

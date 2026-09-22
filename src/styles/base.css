@@ -304,6 +304,17 @@ textarea { resize: vertical; min-height: 62px; }
 .d-turno.manana { background: var(--manana); }
 .d-turno.tarde { background: var(--tarde); }
 .d-turno.noche { background: var(--noche); }
+/* Estado del día sin turno propio (libre, baja, vacaciones, festivo...):
+   misma tira que el turno, letras más pequeñas porque el texto es más largo. */
+.d-turno.libra, .d-turno.festivo, .d-turno.baja, .d-turno.vac, .d-turno.extra {
+  font-size: .62rem;
+  letter-spacing: 0;
+}
+.d-turno.libra { background: var(--libra); }
+.d-turno.festivo { background: var(--festivo); }
+.d-turno.baja { background: var(--baja); }
+.d-turno.vac { background: var(--vacaciones); }
+.d-turno.extra { background: var(--extra); }
 /* Indicador único de "hay más cosas ese día" (toca el día para verlas).
    Va en el hueco entre el número del día y la tira del turno. */
 .d-more {
