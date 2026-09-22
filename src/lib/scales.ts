@@ -1,4 +1,5 @@
 import type {
+  AutoCategoria,
   Entry,
   EntryType,
   FestivoAmbito,
@@ -53,6 +54,13 @@ export const ENTRY_LABEL: Record<EntryType, string> = {
   libranzaComp: 'Libranza por finde trabajado',
   disponibilidad: 'Disponibilidad (T / D)',
   nota: 'Nota',
+}
+
+export const AUTO_CATEGORIA_LABEL: Record<AutoCategoria, string> = {
+  bolsa: 'Bolsa de horas',
+  complemento: 'Complemento de sábado/festivo',
+  libranza: 'Libranza por finde trabajado',
+  disponibilidad: 'Disponibilidad (T / D)',
 }
 
 const h = (n: number) => (Number.isInteger(n) ? `${n} h` : `${n.toFixed(1)} h`)

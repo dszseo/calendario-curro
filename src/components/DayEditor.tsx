@@ -36,6 +36,7 @@ import {
 import { getMeta, setMeta } from '../db/db'
 import { JORNADA_HORAS } from '../lib/config'
 import {
+  AUTO_CATEGORIA_LABEL,
   ENTRY_LABEL,
   FESTIVO_AMBITO_LABEL,
   LIBRANZA_LABEL,
@@ -253,6 +254,13 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
                   )
                 })}
               </div>
+            )}
+
+            {(day?.autoOff?.length ?? 0) > 0 && (
+              <p class="hint" style={{ marginBottom: '8px' }}>
+                ⚠️ Descartaste a mano lo automático de: {day!.autoOff!.map((c) => AUTO_CATEGORIA_LABEL[c]).join(', ')}.
+                No se vuelve a calcular solo hasta que pulses «Recalcular».
+              </p>
             )}
 
             {hayAjustesAuto && (
