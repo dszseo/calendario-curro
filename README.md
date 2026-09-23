@@ -13,14 +13,21 @@ notas— con resumen del mes y **bolsa de horas** acumulada.
 
 ## Estado
 
-**Fase 1** (seguimiento usable): calendario, anotaciones por día con matriz de
-incompatibilidades, turnos con autorelleno de 5 días, libranzas, bajas por rango,
-bolsa de horas derivada, resumen mensual y copias de seguridad.
+Calendario mensual con anotaciones por día (matriz de incompatibilidades),
+turnos con autorelleno de bloque (5 días mañana/tarde/noche, o 5 noches
+domingo/lunes→jueves), libranzas por finde trabajado (automáticas, con reparto
+por rotación de turno), bajas y vacaciones por rango, disponibilidad T/D de
+findes (alterna sola desde un ancla, con borrado total o desde una fecha),
+motor de complementos de sábado/domingo/festivo (incluidos los medios festivos
+de la noche), bolsa de horas derivada, días de vacaciones/asuntos
+propios/regulación con contador anual, previsión de nómina mensual, resumen
+del mes y copias de seguridad.
 
-Pendiente (fases 2 y 3): motor de complementos de sábado/domingo/festivo, medios
-festivos en turno de noche, previsión de nómina, configuración anual de días
-disponibles, acumulación de vacaciones y avisos de caducidad. Ver
-`.claude/plans/`.
+Pendiente: festivos automáticos por comunidad (hoy se marcan a mano, día a
+día), permiso de maternidad/paternidad como rango con autorelleno, y llevar
+las constantes del convenio (`JORNADA_HORAS`, `UMBRAL_COMPLEMENTO_HORAS`,
+días por defecto) a configuración anual editable en vez de fijas en
+`lib/config.ts`.
 
 ## Desarrollo
 
@@ -43,9 +50,9 @@ Stack: Preact + Vite + TypeScript · Dexie (IndexedDB) · date-fns · vite-plugi
 |---|---|
 | `src/db/` | Esquema Dexie, modelo de día/entradas, CRUD, bolsa de horas |
 | `src/lib/` | Fechas y semana, etiquetas en español, matriz de incompatibilidades, constantes del convenio |
-| `src/lib/calc/` | Lógica pura: autorelleno de turnos, deltas de bolsa, resumen mensual (aquí crecerá el motor de cálculo) |
+| `src/lib/calc/` | Lógica pura: autorelleno de turnos, deltas de bolsa, complementos de sábado/festivo, libranzas por finde, disponibilidad T/D, días del año, ledger anual, resumen mensual |
 | `src/components/` | Calendario, resumen, barra de bolsa, editor de día |
-| `src/routes/` | Inicio (calendario + resumen) y Ajustes |
+| `src/routes/` | Inicio (calendario + resumen), Nómina del mes, Bolsa del año, Vacaciones y días del año, Ajustes |
 | `src/export/` | Copia JSON completa y copias automáticas en OPFS |
 
 ## Copias de seguridad
