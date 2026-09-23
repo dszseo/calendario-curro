@@ -10,7 +10,7 @@ export type LibranzaMotivo =
   | 'permiso' // permiso retribuido
   | 'especial' // día libre por día especial trabajado
 
-export type FestivoAmbito = 'nacional' | 'local' | 'empresa'
+export type FestivoAmbito = 'nacional' | 'autonomico' | 'local' | 'empresa'
 
 export type PermisoTipo =
   | 'matrimonio'
@@ -32,6 +32,7 @@ export type EntryType =
   | 'asuntoPropio'
   | 'regulacion'
   | 'permiso'
+  | 'permisoML'
   | 'diaEspecial'
   | 'ajusteBolsa'
   | 'complemento'
@@ -40,7 +41,7 @@ export type EntryType =
   | 'nota'
 
 /** Categorías de entrada que la app genera y mantiene automáticamente. */
-export type AutoCategoria = 'bolsa' | 'complemento' | 'libranza' | 'disponibilidad'
+export type AutoCategoria = 'bolsa' | 'complemento' | 'libranza' | 'disponibilidad' | 'festivo'
 
 interface BaseEntry {
   id: string
@@ -82,6 +83,14 @@ export interface FestivoEntry extends BaseEntry {
 
 export interface BajaEntry extends BaseEntry {
   type: 'baja'
+  motivo?: string
+}
+
+/** Permiso de maternidad/paternidad (nacimiento y cuidado del menor). Por
+ *  rango, en días naturales — igual que la baja, no salta findes ni
+ *  festivos. */
+export interface PermisoMLEntry extends BaseEntry {
+  type: 'permisoML'
   motivo?: string
 }
 
@@ -139,6 +148,7 @@ export type Entry =
   | LibranzaEntry
   | FestivoEntry
   | BajaEntry
+  | PermisoMLEntry
   | SimpleDiaEntry
   | PermisoEntry
   | DiaEspecialEntry

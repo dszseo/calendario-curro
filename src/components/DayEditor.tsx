@@ -22,6 +22,7 @@ import {
   applyTurnoBlock,
   daysMapInRange,
   fillBajaRange,
+  fillPermisoMLRange,
   fillVacacionesRange,
   getDay,
   overrideEntrada,
@@ -55,6 +56,7 @@ import { CollapsibleSection } from './CollapsibleSection'
 
 const BAJA_KEY = 'bajaAbiertaDesde'
 const VAC_KEY = 'vacacionesAbiertaDesde'
+const PERMISO_ML_KEY = 'permisoMLAbiertoDesde'
 
 // Tipos que se añaden desde el editor (baja y vacaciones se gestionan con el flujo de rango).
 const ADDABLE: EntryType[] = [
@@ -83,6 +85,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
   const day = useLiveQuery(() => getDay(date), [date])
   const bajaDesde = useLiveQuery(() => getMeta<DateKey | null>(BAJA_KEY, null), [], null)
   const vacDesde = useLiveQuery(() => getMeta<DateKey | null>(VAC_KEY, null), [], null)
+  const permisoMLDesde = useLiveQuery(() => getMeta<DateKey | null>(PERMISO_ML_KEY, null), [], null)
   const [draft, setDraft] = useState<Draft>({ mode: 'list' })
 
   const entries = day?.entries ?? []
@@ -162,6 +165,20 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
     const n = await fillVacacionesRange(desde, date)
     await setMeta(VAC_KEY, null)
     toast(`Vacaciones: ${n} día(s) rellenados (findes y festivos no cuentan)`)
+    onClose()
+  }
+
+  async function startPermisoML() {
+    await addEntry(date, { type: 'permisoML' } as Omit<Entry, 'id'>)
+    await setMeta(PERMISO_ML_KEY, date)
+    toast('Permiso de maternidad/paternidad iniciado. Marca el último día para rellenar el rango.')
+    onClose()
+  }
+
+  async function endPermisoML(desde: DateKey) {
+    const n = await fillPermisoMLRange(desde, date)
+    await setMeta(PERMISO_ML_KEY, null)
+    toast(`Permiso de maternidad/paternidad: ${n} días naturales rellenados`)
     onClose()
   }
 
@@ -283,6 +300,14 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
               bajaDesde={bajaDesde ?? null}
               onStart={startBaja}
               onEnd={endBaja}
+            />
+
+            <PermisoMLControls
+              date={date}
+              entries={entries}
+              permisoMLDesde={permisoMLDesde ?? null}
+              onStart={startPermisoML}
+              onEnd={endPermisoML}
             />
 
             <VacacionesControls
@@ -416,6 +441,46 @@ function BajaControls({
     <div style={{ marginTop: '10px' }}>
       <button class="btn block" onClick={onStart}>
         Marcar inicio de baja médica aquí
+      </button>
+    </div>
+  )
+}
+
+function PermisoMLControls({
+  date,
+  entries,
+  permisoMLDesde,
+  onStart,
+  onEnd,
+}: {
+  date: DateKey
+  entries: Entry[]
+  permisoMLDesde: DateKey | null
+  onStart: () => void
+  onEnd: (desde: DateKey) => void
+}) {
+  const yaPermiso = entries.some((e) => e.type === 'permisoML')
+  if (permisoMLDesde && date >= permisoMLDesde) {
+    return (
+      <div style={{ marginTop: '10px' }}>
+        <button class="btn block" onClick={() => onEnd(permisoMLDesde)}>
+          Marcar fin de permiso aquí (rellena desde {shortDate(permisoMLDesde)})
+        </button>
+      </div>
+    )
+  }
+  if (permisoMLDesde) {
+    return (
+      <p class="hint" style={{ marginTop: '10px' }}>
+        Permiso de maternidad/paternidad abierto desde {shortDate(permisoMLDesde)}.
+      </p>
+    )
+  }
+  if (yaPermiso) return null
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <button class="btn block" onClick={onStart}>
+        Marcar inicio de permiso de maternidad/paternidad aquí
       </button>
     </div>
   )
@@ -678,6 +743,8 @@ function EntryForm({
         return emit({ type: 'nota', texto: nTexto.trim() })
       case 'baja':
         return emit({ type: 'baja' })
+      case 'permisoML':
+        return emit({ type: 'permisoML' })
     }
   }
 

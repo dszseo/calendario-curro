@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useLocation } from '../router'
 import { db, getMeta, setMeta, SCHEMA_VERSION } from '../db/db'
 import { BOLSA_INICIAL_KEY, saldoBolsa } from '../db/bolsa'
-import { borrarDisponibilidad } from '../db/days'
+import { borrarDisponibilidad, getComunidadAutonoma, setComunidadAutonoma } from '../db/days'
+import { COMUNIDAD_LABEL, type ComunidadAutonoma } from '../lib/calc/festivos'
 import { todayKey } from '../lib/datetime'
 import {
   backupFilename,
@@ -39,6 +40,7 @@ export function Settings() {
         <span style={{ width: '46px' }} />
       </div>
       <BolsaInicialSection />
+      <FestivosSection />
       <DisponibilidadSection />
       <BackupSection />
       <SnapshotsSection />
@@ -87,6 +89,49 @@ function BolsaInicialSection() {
         </div>
       </div>
       <p class="hint">Saldo total actual: <strong>{saldo == null ? '…' : `${saldo} h`}</strong></p>
+    </section>
+  )
+}
+
+const COMUNIDADES = Object.keys(COMUNIDAD_LABEL) as ComunidadAutonoma[]
+
+function FestivosSection() {
+  const actual = useLiveQuery(() => getComunidadAutonoma(), [], undefined)
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <section class="section">
+      <h2>Festivos automáticos</h2>
+      <p class="hint">
+        Marca solos los festivos nacionales (fijos + Viernes Santo) y los de tu comunidad
+        autónoma, cada día del año, sin conexión. Los locales (de tu municipio) los sigues
+        marcando tú a mano, como siempre. Si uno no aplica, quítalo con la papelera en la ficha
+        del día — no vuelve a salir hasta que pulses «Recalcular».
+      </p>
+      <div class="field" style={{ marginTop: '10px' }}>
+        <label>Comunidad autónoma</label>
+        <select
+          value={actual ?? ''}
+          disabled={busy}
+          onInput={async (e) => {
+            const val = (e.target as HTMLSelectElement).value
+            setBusy(true)
+            try {
+              await setComunidadAutonoma((val || null) as ComunidadAutonoma | null)
+              toast(val ? 'Comunidad autónoma guardada' : 'Sin comunidad: solo festivos nacionales')
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <option value="">Ninguna (solo nacionales)</option>
+          {COMUNIDADES.map((c) => (
+            <option value={c} key={c}>
+              {COMUNIDAD_LABEL[c]}
+            </option>
+          ))}
+        </select>
+      </div>
     </section>
   )
 }

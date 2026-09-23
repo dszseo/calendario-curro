@@ -1,18 +1,34 @@
 import { db, getMeta, setMeta, uuid } from './db'
 import type { AutoCategoria, Day, Entry, Periodo, TurnoEntry } from './types'
-import { addDaysKey, dowMon0, isWeekend, keysBetween, type DateKey } from '../lib/datetime'
+import { addDaysKey, dowMon0, isWeekend, keysBetween, todayKey, type DateKey } from '../lib/datetime'
 import { entradasAutoDia, esEntradaAuto, fusionarEntradas } from '../lib/calc/auto'
 import { bolsaCtx, type BolsaCtx } from '../lib/calc/bolsa'
 import { conAncla, sabadoDeFinde, type Dispo, type DispoAncla } from '../lib/calc/disponibilidad'
+import type { ComunidadAutonoma } from '../lib/calc/festivos'
 import { scheduleSnapshot } from '../export/snapshots'
 
 export const DISPO_ANCLA_KEY = 'dispoAncla'
+export const COMUNIDAD_KEY = 'comunidadAutonoma'
 
 /** Lista de anclas T/D. Admite el formato antiguo (una sola ancla, sin lista). */
 async function getDispoAnclas(): Promise<DispoAncla[]> {
   const raw = await getMeta<DispoAncla[] | DispoAncla | null>(DISPO_ANCLA_KEY, null)
   if (!raw) return []
   return Array.isArray(raw) ? raw : [raw]
+}
+
+export function getComunidadAutonoma(): Promise<ComunidadAutonoma | null> {
+  return getMeta<ComunidadAutonoma | null>(COMUNIDAD_KEY, null)
+}
+
+/** Fija la comunidad autónoma (para los festivos automáticos) y refresca un
+ *  par de años alrededor de hoy para que se note ya. No toca lo muy pasado ni
+ *  lo muy futuro — esos se rellenan solos al visitarlos, como el resto de
+ *  automáticos. */
+export async function setComunidadAutonoma(comunidad: ComunidadAutonoma | null): Promise<void> {
+  await setMeta(COMUNIDAD_KEY, comunidad)
+  const hoy = todayKey()
+  await regenerarRangoVisible(addDaysKey(hoy, -365), addDaysKey(hoy, 365))
 }
 
 export { uuid }
@@ -54,8 +70,9 @@ function recalcularDia(
   mapa: Map<DateKey, Day>,
   ctx?: BolsaCtx,
   anclas?: DispoAncla[] | null,
+  comunidad?: ComunidadAutonoma | null,
 ): Day | null {
-  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx, anclas)
+  const autos = entradasAutoDia(date, mapa, prev?.autoOff, ctx, anclas, comunidad)
   const entries = fusionarEntradas(prev?.entries ?? [], autos)
   if (entries.length === 0) {
     // conserva la fila si el usuario ha descartado alguna categoría auto
@@ -82,12 +99,13 @@ async function regenerarEnRango(
   const mapa = new Map(ctxRows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(ctxRows)
   const anclas = await getDispoAnclas()
+  const comunidad = await getComunidadAutonoma()
 
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const date of keysBetween(nucleoDesde, nucleoHasta)) {
     const prev = mapa.get(date)
-    const next = recalcularDia(date, prev, mapa, ctx, anclas)
+    const next = recalcularDia(date, prev, mapa, ctx, anclas, comunidad)
     if (next === prev) continue
     if (next === null) {
       if (prev) dels.push(date)
@@ -130,10 +148,11 @@ export async function regenerarTodo(): Promise<void> {
   const mapa = new Map(rows.map((d) => [d.date, d]))
   const ctx = bolsaCtx(rows)
   const anclas = await getDispoAnclas()
+  const comunidad = await getComunidadAutonoma()
   const puts: Day[] = []
   const dels: DateKey[] = []
   for (const d of rows) {
-    const next = recalcularDia(d.date, d, mapa, ctx, anclas)
+    const next = recalcularDia(d.date, d, mapa, ctx, anclas, comunidad)
     if (next === d) continue
     if (next === null) dels.push(d.date)
     else puts.push(next)
@@ -203,6 +222,7 @@ function catOf(e: Entry): AutoCategoria | null {
   if (e.type === 'complemento') return 'complemento'
   if (e.type === 'libranzaComp') return 'libranza'
   if (e.type === 'disponibilidad') return 'disponibilidad'
+  if (e.type === 'festivo') return 'festivo'
   return null
 }
 
@@ -387,6 +407,31 @@ export async function fillBajaRange(
       const keep = current.filter((e) => e.type === 'nota' || e.type === 'festivo')
       const baja: Entry = { id: uuid(), type: 'baja', motivo: motivo?.trim() || undefined }
       await db.days.put({ date, entries: [baja, ...keep], updatedAt: Date.now() })
+    }
+  })
+  for (const date of keys) await regenerarAuto(date)
+  scheduleSnapshot()
+  return keys.length
+}
+
+/**
+ * Rellena un rango como permiso de maternidad/paternidad. Igual que la baja:
+ * días naturales, sin saltar findes ni festivos. En cada día deja solo el
+ * permiso, más las notas y festivos que ya hubiera.
+ */
+export async function fillPermisoMLRange(
+  fromKey: DateKey,
+  toKey: DateKey,
+  motivo?: string,
+): Promise<number> {
+  const keys = keysBetween(fromKey, toKey)
+  await db.transaction('rw', db.days, async () => {
+    for (const date of keys) {
+      const current = (await db.days.get(date))?.entries ?? []
+      if (current.some((e) => e.type === 'permisoML')) continue
+      const keep = current.filter((e) => e.type === 'nota' || e.type === 'festivo')
+      const permiso: Entry = { id: uuid(), type: 'permisoML', motivo: motivo?.trim() || undefined }
+      await db.days.put({ date, entries: [permiso, ...keep], updatedAt: Date.now() })
     }
   })
   for (const date of keys) await regenerarAuto(date)

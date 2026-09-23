@@ -43,6 +43,7 @@ export function MonthSummary({ days }: { days: Day[] }) {
         {r.regulacion > 0 && <Stat k="Días de regulación" v={r.regulacion} />}
         {r.permisos > 0 && <Stat k="Permisos retribuidos" v={r.permisos} />}
         {r.bajas > 0 && <Stat k="Días de baja" v={r.bajas} />}
+        {r.permisosML > 0 && <Stat k="Permiso maternidad/paternidad" v={r.permisosML} />}
         {r.diasEspeciales > 0 && <Stat k="Días especiales" v={r.diasEspeciales} />}
         {r.horasExtraCobrar > 0 && <Stat k="Horas extra a cobrar" v={hh(r.horasExtraCobrar)} />}
         {r.horasExtraBolsa > 0 && <Stat k="Horas extra a bolsa" v={hh(r.horasExtraBolsa)} />}

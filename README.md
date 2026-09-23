@@ -16,17 +16,21 @@ notas— con resumen del mes y **bolsa de horas** acumulada.
 Calendario mensual con anotaciones por día (matriz de incompatibilidades),
 turnos con autorelleno de bloque (5 días mañana/tarde/noche, o 5 noches
 domingo/lunes→jueves), libranzas por finde trabajado (automáticas, con reparto
-por rotación de turno), bajas y vacaciones por rango, disponibilidad T/D de
-findes (alterna sola desde un ancla, con borrado total o desde una fecha),
-motor de complementos de sábado/domingo/festivo (incluidos los medios festivos
-de la noche), bolsa de horas derivada, días de vacaciones/asuntos
-propios/regulación con contador anual, previsión de nómina mensual, resumen
-del mes y copias de seguridad.
+por rotación de turno), bajas, permiso de maternidad/paternidad y vacaciones
+por rango (días naturales para baja/permiso, laborables para vacaciones),
+disponibilidad T/D de findes (alterna sola desde un ancla, con borrado total o
+desde una fecha), festivos automáticos nacionales + de la comunidad autónoma
+configurada (sin conexión, por fórmula — nunca hace falta actualizar un
+fichero por año — editables/borrables como el resto de automáticos; los
+locales se siguen marcando a mano), motor de complementos de sábado/domingo/
+festivo (incluidos los medios festivos de la noche), bolsa de horas derivada,
+días de vacaciones/asuntos propios/regulación con contador anual, previsión
+de nómina mensual, resumen del mes y copias de seguridad.
 
-Pendiente: festivos automáticos por comunidad (hoy se marcan a mano, día a
-día), permiso de maternidad/paternidad como rango con autorelleno, y llevar
-las constantes del convenio (`JORNADA_HORAS`, `UMBRAL_COMPLEMENTO_HORAS`,
-días por defecto) a configuración anual editable en vez de fijas en
+Pendiente: festivos locales automáticos (dependen del municipio, no solo de
+la comunidad, así que se necesitaría más configuración), y llevar las
+constantes del convenio (`JORNADA_HORAS`, `UMBRAL_COMPLEMENTO_HORAS`, días
+por defecto) a configuración anual editable en vez de fijas en
 `lib/config.ts`.
 
 ## Desarrollo
@@ -50,7 +54,7 @@ Stack: Preact + Vite + TypeScript · Dexie (IndexedDB) · date-fns · vite-plugi
 |---|---|
 | `src/db/` | Esquema Dexie, modelo de día/entradas, CRUD, bolsa de horas |
 | `src/lib/` | Fechas y semana, etiquetas en español, matriz de incompatibilidades, constantes del convenio |
-| `src/lib/calc/` | Lógica pura: autorelleno de turnos, deltas de bolsa, complementos de sábado/festivo, libranzas por finde, disponibilidad T/D, días del año, ledger anual, resumen mensual |
+| `src/lib/calc/` | Lógica pura: autorelleno de turnos, deltas de bolsa, complementos de sábado/festivo, libranzas por finde, disponibilidad T/D, festivos automáticos (nacional/autonómico), días del año, ledger anual, resumen mensual |
 | `src/components/` | Calendario, resumen, barra de bolsa, editor de día |
 | `src/routes/` | Inicio (calendario + resumen), Nómina del mes, Bolsa del año, Vacaciones y días del año, Ajustes |
 | `src/export/` | Copia JSON completa y copias automáticas en OPFS |

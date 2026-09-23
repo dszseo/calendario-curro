@@ -4,6 +4,7 @@ import { ENTRY_LABEL } from './scales'
 /** Ausencias que ocupan el día completo y se excluyen entre sí y con el trabajo. */
 const AUSENCIA_COMPLETA: EntryType[] = [
   'baja',
+  'permisoML',
   'vacaciones',
   'asuntoPropio',
   'regulacion',
@@ -19,6 +20,7 @@ const SINGLETON: EntryType[] = [
   'turno',
   'festivo',
   'baja',
+  'permisoML',
   'libranza',
   'libranzaComp',
   'vacaciones',

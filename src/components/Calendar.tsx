@@ -58,6 +58,10 @@ function dayBadges(day: Day | undefined): Badges {
         if (sinTurnoEfectivo) strip = { cls: 'baja', label: 'BAJA' }
         else labels.add('BAJA')
         break
+      case 'permisoML':
+        if (sinTurnoEfectivo) strip = { cls: 'baja', label: 'M/P' }
+        else labels.add('M/P')
+        break
       case 'diaEspecial':
         if (sinTurnoEfectivo) strip = { cls: 'extra', label: 'ESP' }
         else labels.add('ESP')

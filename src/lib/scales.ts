@@ -34,6 +34,7 @@ export const PERMISO_LABEL: Record<PermisoTipo, string> = {
 
 export const FESTIVO_AMBITO_LABEL: Record<FestivoAmbito, string> = {
   nacional: 'Nacional',
+  autonomico: 'Autonómico',
   local: 'Local',
   empresa: 'Empresa / convenio',
 }
@@ -48,6 +49,7 @@ export const ENTRY_LABEL: Record<EntryType, string> = {
   asuntoPropio: 'Asunto propio',
   regulacion: 'Día de regulación',
   permiso: 'Permiso retribuido',
+  permisoML: 'Permiso de maternidad/paternidad',
   diaEspecial: 'Día especial',
   ajusteBolsa: 'Ajuste de bolsa de horas',
   complemento: 'Complemento (sábado / festivo)',
@@ -61,6 +63,7 @@ export const AUTO_CATEGORIA_LABEL: Record<AutoCategoria, string> = {
   complemento: 'Complemento de sábado/festivo',
   libranza: 'Libranza por finde trabajado',
   disponibilidad: 'Disponibilidad (T / D)',
+  festivo: 'Festivo automático',
 }
 
 const h = (n: number) => (Number.isInteger(n) ? `${n} h` : `${n.toFixed(1)} h`)
@@ -105,6 +108,12 @@ export function describeEntry(e: Entry): EntryView {
       }
     case 'baja':
       return { title: 'Baja médica', sub: e.motivo?.trim() || undefined, swatch: 'sw-baja' }
+    case 'permisoML':
+      return {
+        title: 'Permiso de maternidad/paternidad',
+        sub: e.motivo?.trim() || undefined,
+        swatch: 'sw-baja',
+      }
     case 'vacaciones':
       return { title: 'Vacaciones', swatch: 'sw-vac' }
     case 'asuntoPropio':

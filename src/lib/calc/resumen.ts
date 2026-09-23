@@ -8,6 +8,7 @@ export interface ResumenMes {
   libranzas: Record<LibranzaMotivo, number>
   festivos: number
   bajas: number
+  permisosML: number
   vacaciones: number
   asuntosPropios: number
   regulacion: number
@@ -31,6 +32,7 @@ export function resumenMes(days: Day[]): ResumenMes {
     libranzas: { asuntos: 0, regulacion: 0, vacaciones: 0, horas: 0, permiso: 0, especial: 0 },
     festivos: 0,
     bajas: 0,
+    permisosML: 0,
     vacaciones: 0,
     asuntosPropios: 0,
     regulacion: 0,
@@ -72,6 +74,9 @@ export function resumenMes(days: Day[]): ResumenMes {
           break
         case 'baja':
           r.bajas++
+          break
+        case 'permisoML':
+          r.permisosML++
           break
         case 'vacaciones':
           r.vacaciones++
