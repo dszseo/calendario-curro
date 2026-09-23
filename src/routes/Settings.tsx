@@ -27,6 +27,7 @@ import {
 import { downloadText, readFileAsText, shareTextFile } from '../lib/download'
 import { requestPersistentStorage, storageStatus } from '../lib/persist'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import { toast } from '../lib/toast'
 
 export function Settings() {
@@ -525,19 +526,16 @@ function NovedadesDialog({ onClose }: { onClose: () => void }) {
         style={{ maxHeight: '80vh', overflowY: 'auto' }}
       >
         <h2>Novedades</h2>
-        {CHANGELOG.map((v) => (
-          <div key={v.fecha} style={{ marginBottom: '14px' }}>
-            <div class="hint" style={{ fontWeight: 700, marginBottom: '4px' }}>
-              {shortDate(v.fecha)}
-            </div>
+        {CHANGELOG.map((v, i) => (
+          <CollapsibleSection title={shortDate(v.fecha)} open={i === 0} key={v.fecha}>
             <ul style={{ margin: 0, paddingLeft: '18px' }}>
-              {v.cambios.map((c, i) => (
-                <li key={i} style={{ marginBottom: '4px' }}>
+              {v.cambios.map((c, j) => (
+                <li key={j} style={{ marginBottom: '4px' }}>
                   {c}
                 </li>
               ))}
             </ul>
-          </div>
+          </CollapsibleSection>
         ))}
         <div class="actions">
           <button class="btn ghost" onClick={onClose} style={{ flex: 'unset', width: '100%' }}>

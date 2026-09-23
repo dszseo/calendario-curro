@@ -300,6 +300,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
               bajaDesde={bajaDesde ?? null}
               onStart={startBaja}
               onEnd={endBaja}
+              mostrarInicio={false}
             />
 
             <PermisoMLControls
@@ -308,6 +309,7 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
               permisoMLDesde={permisoMLDesde ?? null}
               onStart={startPermisoML}
               onEnd={endPermisoML}
+              mostrarInicio={false}
             />
 
             <VacacionesControls
@@ -317,6 +319,19 @@ export function DayEditor({ date, onClose }: { date: DateKey; onClose: () => voi
               onStartSolo={startVacacionesSolo}
               onStartRango={startVacacionesRango}
               onEnd={endVacaciones}
+              mostrarInicio={false}
+            />
+
+            <AnadirPeriodoControls
+              date={date}
+              entries={entries}
+              bajaDesde={bajaDesde ?? null}
+              permisoMLDesde={permisoMLDesde ?? null}
+              vacDesde={vacDesde ?? null}
+              onBaja={startBaja}
+              onPermiso={startPermisoML}
+              onVacSolo={startVacacionesSolo}
+              onVacRango={startVacacionesRango}
             />
           </>
         )}
@@ -416,12 +431,14 @@ function BajaControls({
   bajaDesde,
   onStart,
   onEnd,
+  mostrarInicio = true,
 }: {
   date: DateKey
   entries: Entry[]
   bajaDesde: DateKey | null
   onStart: () => void
   onEnd: (desde: DateKey) => void
+  mostrarInicio?: boolean
 }) {
   const yaBaja = entries.some((e) => e.type === 'baja')
   if (bajaDesde && date >= bajaDesde) {
@@ -436,7 +453,7 @@ function BajaControls({
   if (bajaDesde) {
     return <p class="hint" style={{ marginTop: '10px' }}>Baja abierta desde {shortDate(bajaDesde)}.</p>
   }
-  if (yaBaja) return null
+  if (yaBaja || !mostrarInicio) return null
   return (
     <div style={{ marginTop: '10px' }}>
       <button class="btn block" onClick={onStart}>
@@ -452,12 +469,14 @@ function PermisoMLControls({
   permisoMLDesde,
   onStart,
   onEnd,
+  mostrarInicio = true,
 }: {
   date: DateKey
   entries: Entry[]
   permisoMLDesde: DateKey | null
   onStart: () => void
   onEnd: (desde: DateKey) => void
+  mostrarInicio?: boolean
 }) {
   const yaPermiso = entries.some((e) => e.type === 'permisoML')
   if (permisoMLDesde && date >= permisoMLDesde) {
@@ -476,7 +495,7 @@ function PermisoMLControls({
       </p>
     )
   }
-  if (yaPermiso) return null
+  if (yaPermiso || !mostrarInicio) return null
   return (
     <div style={{ marginTop: '10px' }}>
       <button class="btn block" onClick={onStart}>
@@ -493,6 +512,7 @@ function VacacionesControls({
   onStartSolo,
   onStartRango,
   onEnd,
+  mostrarInicio = true,
 }: {
   date: DateKey
   entries: Entry[]
@@ -500,6 +520,7 @@ function VacacionesControls({
   onStartSolo: () => void
   onStartRango: () => void
   onEnd: (desde: DateKey) => void
+  mostrarInicio?: boolean
 }) {
   const [asking, setAsking] = useState(false)
   const yaVac = entries.some((e) => e.type === 'vacaciones')
@@ -516,7 +537,7 @@ function VacacionesControls({
   if (vacDesde) {
     return <p class="hint" style={{ marginTop: '10px' }}>Vacaciones abiertas desde {shortDate(vacDesde)}.</p>
   }
-  if (yaVac || isWeekend(date)) return null
+  if (yaVac || isWeekend(date) || !mostrarInicio) return null
 
   if (asking) {
     return (
@@ -554,6 +575,117 @@ function VacacionesControls({
     <div style={{ marginTop: '10px' }}>
       <button class="btn block" onClick={() => setAsking(true)}>
         🏖️ Marcar vacaciones aquí
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Botón único "+ Añadir periodo" que sustituye a los tres botones sueltos de
+ * baja/vacaciones/permiso cuando ninguno está ya abierto ni anotado ese día.
+ * Elige tipo (y, si es vacaciones, si es solo hoy o varios días) y dispara el
+ * mismo `onStart*` que usaban los controles individuales.
+ */
+function AnadirPeriodoControls({
+  date,
+  entries,
+  bajaDesde,
+  permisoMLDesde,
+  vacDesde,
+  onBaja,
+  onPermiso,
+  onVacSolo,
+  onVacRango,
+}: {
+  date: DateKey
+  entries: Entry[]
+  bajaDesde: DateKey | null
+  permisoMLDesde: DateKey | null
+  vacDesde: DateKey | null
+  onBaja: () => void
+  onPermiso: () => void
+  onVacSolo: () => void
+  onVacRango: () => void
+}) {
+  const [modo, setModo] = useState<'idle' | 'tipo' | 'vac-alcance'>('idle')
+
+  const algoAbierto = !!bajaDesde || !!permisoMLDesde || !!vacDesde
+  const yaAlgunPeriodo = entries.some((e) => e.type === 'baja' || e.type === 'vacaciones' || e.type === 'permisoML')
+  if (algoAbierto || yaAlgunPeriodo) return null
+
+  if (modo === 'tipo') {
+    return (
+      <div class="card" style={{ padding: '12px', marginTop: '10px' }}>
+        <p class="hint" style={{ marginBottom: '10px' }}>¿Qué periodo quieres añadir?</p>
+        <div class="stack">
+          {!isWeekend(date) && (
+            <button class="btn block" onClick={() => setModo('vac-alcance')}>
+              🏖️ Vacaciones
+            </button>
+          )}
+          <button
+            class="btn block"
+            onClick={() => {
+              setModo('idle')
+              onBaja()
+            }}
+          >
+            🩺 Baja médica
+          </button>
+          <button
+            class="btn block"
+            onClick={() => {
+              setModo('idle')
+              onPermiso()
+            }}
+          >
+            👶 Permiso de maternidad/paternidad
+          </button>
+          <button class="btn ghost block" onClick={() => setModo('idle')}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (modo === 'vac-alcance') {
+    return (
+      <div class="card" style={{ padding: '12px', marginTop: '10px' }}>
+        <p class="hint" style={{ marginBottom: '10px' }}>
+          ¿Vas a estar de vacaciones solo este día o vas a marcar varios días seguidos?
+        </p>
+        <div class="stack">
+          <button
+            class="btn block"
+            onClick={() => {
+              setModo('idle')
+              onVacSolo()
+            }}
+          >
+            Solo este día
+          </button>
+          <button
+            class="btn block"
+            onClick={() => {
+              setModo('idle')
+              onVacRango()
+            }}
+          >
+            Varios días (elegiré el último)
+          </button>
+          <button class="btn ghost block" onClick={() => setModo('tipo')}>
+            Atrás
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <button class="btn block" onClick={() => setModo('tipo')}>
+        + Añadir periodo (vacaciones, baja, permiso...)
       </button>
     </div>
   )
