@@ -960,17 +960,22 @@ function EntryForm({
       {type === 'libranza' && (
         <div class="field">
           <label>¿Qué día se usa? (sección 17)</label>
+          {/* «Vacaciones» se quita de aquí a propósito: es la misma anotación
+              que ya cubre «+ Añadir periodo», y tenerla en los dos sitios
+              duplicaba la forma de marcar un día de vacaciones. */}
           <div class="stack">
-            {(Object.keys(LIBRANZA_LABEL) as LibranzaEntry['motivo'][]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                class={`btn ${lMotivo === m ? 'primary' : ''}`}
-                onClick={() => setLMotivo(m)}
-              >
-                {LIBRANZA_LABEL[m]}
-              </button>
-            ))}
+            {(Object.keys(LIBRANZA_LABEL) as LibranzaEntry['motivo'][])
+              .filter((m) => m !== 'vacaciones')
+              .map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  class={`btn ${lMotivo === m ? 'primary' : ''}`}
+                  onClick={() => setLMotivo(m)}
+                >
+                  {LIBRANZA_LABEL[m]}
+                </button>
+              ))}
           </div>
         </div>
       )}

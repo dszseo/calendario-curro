@@ -19,6 +19,7 @@ export const CHANGELOG: CambioFecha[] = [
       'Nuevo permiso de maternidad/paternidad: se marca por rango (inicio y fin) como la baja médica, contando también fines de semana y festivos.',
       'Nueva sección "Novedades" en Ajustes con el historial de cambios de la app.',
       'Los botones sueltos de "marcar baja/vacaciones/permiso" se juntan en uno solo, "+ Añadir periodo", que primero pregunta cuál de los tres quieres.',
+      'Quitada la opción "Vacaciones" del desplegable de Libranza (1 día): estaba duplicada con "+ Añadir periodo".',
     ],
   },
   {
