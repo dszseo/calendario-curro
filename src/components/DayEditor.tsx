@@ -960,12 +960,15 @@ function EntryForm({
       {type === 'libranza' && (
         <div class="field">
           <label>¿Qué día se usa? (sección 17)</label>
-          {/* «Vacaciones» se quita de aquí a propósito: es la misma anotación
-              que ya cubre «+ Añadir periodo», y tenerla en los dos sitios
-              duplicaba la forma de marcar un día de vacaciones. */}
+          {/* Vacaciones/asuntos propios/regulación/permiso se quitan de aquí a
+              propósito: cada uno ya tiene su propio sitio (vacaciones en
+              «+ Añadir periodo»; asuntos propios, regulación y permiso como
+              tipo propio en «+ Añadir al día»). Tenerlos también aquí
+              duplicaba la forma de anotar lo mismo. Se dejan «horas» y
+              «especial», que no tienen ningún otro sitio donde vivir. */}
           <div class="stack">
             {(Object.keys(LIBRANZA_LABEL) as LibranzaEntry['motivo'][])
-              .filter((m) => m !== 'vacaciones')
+              .filter((m) => m === 'horas' || m === 'especial')
               .map((m) => (
                 <button
                   key={m}

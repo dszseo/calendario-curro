@@ -20,6 +20,7 @@ export const CHANGELOG: CambioFecha[] = [
       'Nueva sección "Novedades" en Ajustes con el historial de cambios de la app.',
       'Los botones sueltos de "marcar baja/vacaciones/permiso" se juntan en uno solo, "+ Añadir periodo", que primero pregunta cuál de los tres quieres.',
       'Quitada la opción "Vacaciones" del desplegable de Libranza (1 día): estaba duplicada con "+ Añadir periodo".',
+      'Quitadas también "Asuntos propios", "Día de regulación" y "Permiso retribuido" de ese mismo desplegable: cada una ya tiene su propio botón en "+ Añadir al día", no hacía falta tenerlas dos veces.',
     ],
   },
   {
