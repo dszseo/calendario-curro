@@ -5,7 +5,8 @@ import { db, getMeta, setMeta, SCHEMA_VERSION } from '../db/db'
 import { BOLSA_INICIAL_KEY, saldoBolsa } from '../db/bolsa'
 import { borrarDisponibilidad, getComunidadAutonoma, setComunidadAutonoma } from '../db/days'
 import { COMUNIDAD_LABEL, type ComunidadAutonoma } from '../lib/calc/festivos'
-import { todayKey } from '../lib/datetime'
+import { CHANGELOG } from '../lib/changelog'
+import { shortDate, todayKey } from '../lib/datetime'
 import {
   backupFilename,
   backupToString,
@@ -45,6 +46,7 @@ export function Settings() {
       <BackupSection />
       <SnapshotsSection />
       <StorageSection />
+      <NovedadesSection />
       <AboutSection />
     </div>
   )
@@ -497,6 +499,53 @@ function StorageSection() {
         </>
       )}
     </section>
+  )
+}
+
+function NovedadesSection() {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <section class="section">
+      <h2>Novedades</h2>
+      <p class="hint">Qué ha cambiado en la app, para saber qué trae cada actualización.</p>
+      <button class="btn ghost block" onClick={() => setAbierto(true)}>
+        📋 Ver novedades
+      </button>
+      {abierto && <NovedadesDialog onClose={() => setAbierto(false)} />}
+    </section>
+  )
+}
+
+function NovedadesDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <div class="dialog-backdrop" onClick={onClose}>
+      <div
+        class="dialog"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: '80vh', overflowY: 'auto' }}
+      >
+        <h2>Novedades</h2>
+        {CHANGELOG.map((v) => (
+          <div key={v.fecha} style={{ marginBottom: '14px' }}>
+            <div class="hint" style={{ fontWeight: 700, marginBottom: '4px' }}>
+              {shortDate(v.fecha)}
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '18px' }}>
+              {v.cambios.map((c, i) => (
+                <li key={i} style={{ marginBottom: '4px' }}>
+                  {c}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div class="actions">
+          <button class="btn ghost" onClick={onClose} style={{ flex: 'unset', width: '100%' }}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
